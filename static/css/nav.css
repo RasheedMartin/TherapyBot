@@ -26,6 +26,10 @@
     color: white;
   }
 
-  img1{
+  .img1{
     object-fit: cover;
+  }
+
+  h1{
+    font-size: 84px;
   }

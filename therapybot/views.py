@@ -43,3 +43,7 @@ def register(request):
     return render(request=request,
                   template_name="registration/register.html",
                   context={"form": form})
+
+
+def get_started(request):
+    return render(request, 'therapy/get_started.html')

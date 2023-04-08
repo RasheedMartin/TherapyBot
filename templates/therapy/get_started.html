@@ -2,9 +2,10 @@
 {% load static %}
 {% block page_content %}
 
-<div class="img1">
-    <img src="{% static "images/therapy.jpg" %}" alt="Avatar" class="avatar">
+<div class="container">
+    <h1>Hello, {{ user.username|default:'Guest' }}!</h1>
 </div>
 {% endblock %}
+
 
 

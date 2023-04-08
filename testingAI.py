@@ -1,6 +1,6 @@
 import os
 
-os.environ['OPENAI_API_KEY'] = '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'
+os.environ['OPENAI_API_KEY'] = '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'
 
 from dotenv import load_dotenv
 from llama_index import GPTSimpleVectorIndex, QuestionAnswerPrompt, download_loader
@@ -9,7 +9,7 @@ load_dotenv()
 
 SimpleWebPageReader = download_loader("SimpleWebPageReader")
 loader = SimpleWebPageReader()
-documents = loader.load_data(urls=['https://testdriven.io/blog/django-custom-user-model/ '])
+documents = loader.load_data(urls=['https://childmind.org/article/helping-resistant-teens-into-treatment/'])
 
 parser = SimpleNodeParser()
 
@@ -25,7 +25,7 @@ QA_PROMPT_TMPL = (
 )
 QA_PROMPT = QuestionAnswerPrompt(QA_PROMPT_TMPL)
 
-query_str = "What are the advantages of using a custom User model in Django?"
+query_str = "What is the best way to treat a teen with depression?"
 
 response = index.query(query_str, text_qa_template=QA_PROMPT)
 print(response)
