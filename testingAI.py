@@ -1,31 +1,38 @@
 import os
 
-os.environ['OPENAI_API_KEY'] = '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'
+os.environ['OPENAI_API_KEY'] = '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'
 
 from dotenv import load_dotenv
 from llama_index import GPTSimpleVectorIndex, QuestionAnswerPrompt, download_loader
 from llama_index.node_parser import SimpleNodeParser
+
 load_dotenv()
 
-SimpleWebPageReader = download_loader("SimpleWebPageReader")
-loader = SimpleWebPageReader()
-documents = loader.load_data(urls=['https://childmind.org/article/helping-resistant-teens-into-treatment/'])
 
-parser = SimpleNodeParser()
+def therapy(question, therapy_type):
+    SimpleWebPageReader = download_loader("SimpleWebPageReader")
+    loader = SimpleWebPageReader()
 
-nodes = parser.get_nodes_from_documents(documents)
-index = GPTSimpleVectorIndex(nodes)
+    documents = loader.load_data(urls=['https://childmind.org/article/helping-resistant-teens-into-treatment/'])
+    # documents = loader.load_data(urls=['https://www.verywellmind.com/couples-therapy-definition-types-techniques-and-efficacy-5191137'])
+    # documents = loader.load_data(urls=['https://www.verywellmind.com/family-therapy-definition-types-techniques-and-efficacy-5190233'])
+    # documents = loader.load_data(urls=['https://www.keckmedicine.org/treatments/general-therapy-rehabilitation/#:~:text=General%20therapy%2Frehabilitation%20is%20a%20combination%20of%20physical%2C%20occupational,physical%20capabilities%20after%20a%20serious%20injury%20or%20illness.'])
 
-QA_PROMPT_TMPL = (
-    "Hello, I have some context information for you:\n"
-    "---------------------\n"
-    "{context_str}"
-    "\n---------------------\n"
-    "Based on this context, could you please help me understand the answer to this question: {query_str}?\n"
-)
-QA_PROMPT = QuestionAnswerPrompt(QA_PROMPT_TMPL)
+    parser = SimpleNodeParser()
 
-query_str = "What is the best way to treat a teen with depression?"
+    nodes = parser.get_nodes_from_documents(documents)
+    index = GPTSimpleVectorIndex(nodes)
 
-response = index.query(query_str, text_qa_template=QA_PROMPT)
-print(response)
+    QA_PROMPT_TMPL = (
+        "Hello, I have some context information for you:\n"
+        "---------------------\n"
+        "{context_str}"
+        "\n---------------------\n"
+        "Based on this context, could you please help me understand the answer to this question: {query_str}?\n"
+    )
+    QA_PROMPT = QuestionAnswerPrompt(QA_PROMPT_TMPL)
+
+    query_str = question
+
+    response = index.query(query_str, text_qa_template=QA_PROMPT)
+    return response

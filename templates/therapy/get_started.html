@@ -4,6 +4,20 @@
 
 <div class="container">
     <h1>Hello, {{ user.username|default:'Guest' }}!</h1>
+
+    <div class="container">
+        <form class="" action="" method="post">
+            {{ form.as_p }}
+            {% csrf_token %}
+            <input type="submit" class="btn btn-primary" value="Submit">
+        </form>
+        {{ question }}
+
+        {{ result }}
+
+
+
+    </div>
 </div>
 {% endblock %}
 

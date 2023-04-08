@@ -6,11 +6,14 @@ from django.contrib.auth import login
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from therapybot.forms import CustomUserCreationForm
+from testingAI import therapy
 
 
 # Import any models that you need
 
 # Import any forms
+from . import forms
+
 
 # Create your views here.
 
@@ -46,4 +49,20 @@ def register(request):
 
 
 def get_started(request):
-    return render(request, 'therapy/get_started.html')
+    form = forms.FormName()
+    therapy_type = ''
+    question = ''
+    result = ''
+    if request.method == 'POST':
+        form = forms.FormName(request.POST)
+
+        if form.is_valid():
+            # DO SOMETHING CODE
+            therapy_type = form.cleaned_data['therapy_type']
+            question = form.cleaned_data['question_field']
+
+            result = therapy(question, therapy_type)
+
+    return render(request, 'therapy/get_started.html', context={'form': form, 'result': result, 'question': question})
+
+
