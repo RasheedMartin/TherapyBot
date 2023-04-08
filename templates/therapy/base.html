@@ -22,12 +22,16 @@
                     <a href="#" class="nav-item nav-link">Get Started</a>
                 </div>
                 <div class="navbar-nav ms-auto">
-                        <a href="#" class="nav-item nac-link"> Login</a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'logout' %}">Logout</a>
+                        <a href="{% url 'password_change' %}">Change password</a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="nav-item nac-link">Login</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </nav>
-    <h1>Therapy Bots</h1>
     {% block page_content %}
 
     {% endblock %}
