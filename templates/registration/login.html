@@ -1,0 +1,18 @@
+<!--users/templates/registration/login.html-->
+
+{% extends 'therapy/base.html' %}
+
+{% block page_content %}
+<h2>Login</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Login">
+</form>
+
+<a href="{% url 'index' %}">Back to Home Screen</a>
+<a href="{% url 'password_reset' %}">Reset password</a>
+<a href="{% url 'register' %}">Register</a>
+
+{% endblock %}

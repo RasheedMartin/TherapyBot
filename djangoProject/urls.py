@@ -22,6 +22,7 @@ from django.conf.urls import include
 urlpatterns = [
     path('', views.index, name='index'),
     path('admin/', admin.site.urls),
-    path('', include('therapybot.urls'), name='form_name')
+    path('', include('therapybot.urls'), name='form_name'),
+    path('accounts/', include("django.contrib.auth.urls")),
 
 ]
