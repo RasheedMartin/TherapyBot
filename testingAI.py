@@ -1,7 +1,7 @@
 import os
 
 os.environ['OPENAI_API_KEY'] = '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'
-import export as export
+
 from dotenv import load_dotenv
 from llama_index import GPTSimpleVectorIndex, QuestionAnswerPrompt, download_loader
 from llama_index.node_parser import SimpleNodeParser
