@@ -2,8 +2,15 @@
 {% load static %}
 {% block page_content %}
 
-<div class="container">
-    <h1>Hello, {{ user.username|default:'Guest' }}!</h1>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet"/>
+<div class="heading">
+    <!--<h1>Hello, {{ user.username|default:'Guest' }}!</h1>-->
+    <div class = "container">
+        <div class="title text-center ml-auto mr-auto">Hello, {{ user.username|default:'Guest' }}!</div>
+        <img src = "{% static "images/find-therapist.jpeg" %}" class="container">
+        
+    </div>
+
 </div>
 {% endblock %}
 
