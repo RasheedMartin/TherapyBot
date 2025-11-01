@@ -1,15 +1,33 @@
 import "./App.css";
 import Navbar from "./components/Navbar";
-import Home from "../src//pages/Home";
+import { Outlet } from "@tanstack/react-router";
+import "./index.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { UserProvider } from "./context/UserContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useEffect } from "react";
+import { setupInterceptors } from "./api/client";
+const queryClient = new QueryClient();
 
 function App() {
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    setupInterceptors(logout);
+  }, [logout]);
 
   return (
     <>
-      <Navbar/>
-      <main>
-        <Home/>
-      </main>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <UserProvider>
+            <Navbar />
+            <main>
+              <Outlet />
+            </main>
+          </UserProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </>
   );
 }

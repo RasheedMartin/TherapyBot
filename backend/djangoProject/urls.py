@@ -18,10 +18,16 @@ from django.contrib import admin
 from django.urls import path
 from therapybot import views
 from django.conf.urls import include
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
-    path('', views.index, name='index'),
     path('admin/', admin.site.urls),
-    path('', include('therapybot.urls'), name='form_name')
+    # Api endpoint
+    path('api/', include('therapybot.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
 ]
