@@ -4,6 +4,8 @@ import { Login } from "./components/Login";
 import App from "./App";
 import { GettingStarted } from "./pages/GettingStarted";
 import { RegisterPage } from "./components/Register";
+import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
+import { ResetPasswordPage } from "./components/ResetPasswordPage";
 
 const rootRoute = new RootRoute({
   component: App,
@@ -19,6 +21,22 @@ export const loginRoute = new Route({
   getParentRoute: () => rootRoute,
   path: "login",
   component: Login,
+});
+
+export const forgotPasswordRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: "forgot-password",
+  component: ForgotPasswordPage,
+});
+
+export const resetPasswordRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: "reset-password",
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: String(search.token || ""),
+    uid: String(search.uid || null),
+  }),
+  component: ResetPasswordPage,
 });
 
 export const gettingStartedRoute = new Route({
@@ -40,5 +58,7 @@ export const router = createRouter({
     loginRoute,
     registerRoute,
     gettingStartedRoute,
+    forgotPasswordRoute,
+    resetPasswordRoute,
   ]),
 });

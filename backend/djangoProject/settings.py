@@ -44,6 +44,9 @@ INSTALLED_APPS = [
 
 ]
 
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -136,3 +139,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# settings.py
+FRONTEND_URL = "http://localhost:5174"  # or your deployed React URL

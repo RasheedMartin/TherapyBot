@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -5,14 +6,14 @@ import {
   Paper,
   TextField,
   Typography,
+  Alert,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 import api from "../api/client";
 
 export const TherapyForm = () => {
   const [question, setQuestion] = useState("");
-  const [therapyType, setTherapyType] = useState("");
+  const [therapyType, setTherapyType] = useState("Family Therapy");
   const [result, setResult] = useState("");
 
   const {
@@ -21,11 +22,13 @@ export const TherapyForm = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["therapy_session"],
+    queryKey: ["therapy_session", question, therapyType],
     queryFn: () =>
       api.get("get_started", {
-        question,
-        therapy_type: therapyType,
+        params: {
+          question: question,
+          therapy_type: therapyType,
+        },
       }),
     enabled: false,
     retry: false,
@@ -33,20 +36,37 @@ export const TherapyForm = () => {
 
   useEffect(() => {
     if (response) {
-      setResult(response.data.answer);
+      console.log("Full response:", response);
+      console.log("Response data:", response.data);
+
+      // Try different possible response structures
+      const resultText =
+        response.data?.response ||
+        response.data?.answer ||
+        response.data?.result ||
+        JSON.stringify(response.data);
+
+      setResult(resultText);
     }
+
     if (error) {
+      console.error("Error:", error);
       setResult("Something went wrong. Please try again.");
     }
-  }, [response]);
+  }, [response, error]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!question.trim()) {
+      setResult("Please enter a question.");
+      return;
+    }
+
     setResult("");
     refetch();
   };
 
-  console.log(response);
   return (
     <Box
       sx={{
@@ -95,6 +115,7 @@ export const TherapyForm = () => {
             onChange={(e) => setQuestion(e.target.value)}
             margin="normal"
             placeholder="Enter your therapy question"
+            required
           />
 
           <Box
@@ -108,11 +129,13 @@ export const TherapyForm = () => {
               type="submit"
               variant="contained"
               size="large"
-              disabled={isLoading}
-              onClick={handleSubmit}
+              disabled={isLoading || !question.trim()}
             >
               {isLoading ? (
-                <CircularProgress size={24} color="inherit" />
+                <>
+                  <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
+                  Processing...
+                </>
               ) : (
                 "Submit"
               )}
@@ -120,22 +143,38 @@ export const TherapyForm = () => {
           </Box>
         </Box>
 
-        {result && (
-          <Box mt={4} textAlign="center">
-            <Typography variant="subtitle1" fontWeight={600}>
-              Result:
+        {isLoading && (
+          <Alert severity="info" sx={{ mt: 3 }}>
+            Processing your question... This may take 30-60 seconds on first
+            load.
+          </Alert>
+        )}
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 3 }}>
+            {error?.response?.data?.error ||
+              error?.message ||
+              "Something went wrong. Please try again."}
+          </Alert>
+        )}
+
+        {result && !isLoading && (
+          <Box mt={4}>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              Response:
             </Typography>
-            <Typography
-              variant="body1"
+            <Paper
+              elevation={0}
               sx={{
-                mt: 1,
                 p: 2,
                 borderRadius: 2,
                 backgroundColor: "grey.100",
               }}
             >
-              {result}
-            </Typography>
+              <Typography variant="body1" style={{ whiteSpace: "pre-wrap" }}>
+                {result}
+              </Typography>
+            </Paper>
           </Box>
         )}
       </Paper>
