@@ -53,7 +53,7 @@ export const Home = () => {
           How It Works
         </Typography>
         <Grid container spacing={4} justifyContent="center">
-          <Grid item xs={12} sm={4}>
+          <Grid>
             <Paper sx={{ p: 3, textAlign: "center" }} elevation={3}>
               <Typography variant="h6" gutterBottom>
                 Chat Anytime
@@ -64,7 +64,7 @@ export const Home = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid>
             <Paper sx={{ p: 3, textAlign: "center" }} elevation={3}>
               <Typography variant="h6" gutterBottom>
                 Personalized Guidance
@@ -74,7 +74,7 @@ export const Home = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid>
             <Paper sx={{ p: 3, textAlign: "center" }} elevation={3}>
               <Typography variant="h6" gutterBottom>
                 Privacy First

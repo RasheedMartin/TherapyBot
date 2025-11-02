@@ -35,7 +35,8 @@ export const RegisterPage = () => {
     AxiosResponse<any>,
     Error,
     Omit<RegisterFormData, "confirmPassword">
-  >((data) => api.post("/register", data), {
+  >({
+    mutationFn: (data) => api.post("register_user/", data),
     onSuccess: () => {
       navigate({ to: "/login" });
     },
@@ -86,7 +87,7 @@ export const RegisterPage = () => {
           Create a new account to start using TherapyBot
         </Typography>
 
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box component="form" onSubmit={() => handleSubmit}>
           <Stack spacing={3} mt={2}>
             <TextField
               name="username"

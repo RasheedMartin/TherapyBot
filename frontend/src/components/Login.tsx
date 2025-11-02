@@ -1,4 +1,3 @@
-import { CheckBox } from "@mui/icons-material";
 import {
   Box,
   Paper,
@@ -10,9 +9,9 @@ import {
   Checkbox,
 } from "@mui/material";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../api/client";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate, Link, useRouter } from "@tanstack/react-router";
 import { useAuth } from "../context/AuthContext";
 import { useUser } from "../context/UserContext";
@@ -24,36 +23,33 @@ export const Login = () => {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const getLogin = async () => {
-    return await api.post("/token/", {
-      username: username,
-      password: password,
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate({
+      username,
+      password,
     });
   };
 
-  const {
-    data: loginData,
-    error,
-    isLoading,
-    refetch: loginUser,
-  } = useQuery({
-    queryKey: ["login"],
-    queryFn: getLogin,
-    retry: false,
-    enabled: false,
-  });
-
-  useEffect(() => {
-    if (loginData) {
-      const { access, refresh } = loginData.data;
+  const loginMutation = useMutation({
+    mutationFn: (data: { username: string; password: string }) =>
+      api.post("/token/", data),
+    onSuccess: (response) => {
+      const token = response.data.token;
+      if (rememberMe) {
+        localStorage.setItem("authToken", token);
+      } else {
+        sessionStorage.setItem("authToken", token);
+      }
+      const { access, refresh } = response.data;
       login(access, refresh);
       refetch();
       navigate({ to: "/get-started" });
-    }
-    if (error) {
-      logout();
-    }
-  }, [loginData, error]);
+    },
+    onError: () => logout(),
+  });
 
   return (
     <Box
@@ -118,22 +114,29 @@ export const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            <FormControlLabel control={<Checkbox />} label="Remember me" />
-
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+              }
+              label="Remember me"
+            />
             <Button
               type="submit"
               variant="contained"
               color="primary"
               fullWidth
-              onClick={loginUser}
+              onClick={handleSubmit}
               sx={{ py: 1.5 }}
             >
-              {isLoading ? "Logging In..." : "Login"}
+              {loginMutation.isPending ? "Logging In..." : "Login"}
             </Button>
 
-            {error && (
+            {loginMutation.isError && (
               <Typography variant="body2" color="error" textAlign="center">
-                {error.message}
+                {loginMutation.error.message}
               </Typography>
             )}
 
@@ -149,9 +152,7 @@ export const Login = () => {
               <Button variant="outlined" onClick={() => router.history.back()}>
                 Cancel
               </Button>
-              <Link href="/forgot-password" underline="hover" variant="body2">
-                Forgot password?
-              </Link>
+              <Link to="/forgot-password">Forgot password?</Link>
             </Box>
           </Stack>
         </Paper>
@@ -161,12 +162,6 @@ export const Login = () => {
       <Stack direction="row" spacing={2} mt={4} justifyContent="center">
         <Button variant="text" onClick={() => navigate({ to: "/" })}>
           Back to Home
-        </Button>
-        <Button
-          variant="text"
-          onClick={() => navigate({ to: "/reset_password" })}
-        >
-          Reset Password
         </Button>
         <Button variant="text" onClick={() => navigate({ to: "/register" })}>
           Register
