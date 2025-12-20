@@ -7,6 +7,8 @@ import { UserProvider } from "./context/UserContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { useEffect } from "react";
 import { setupInterceptors } from "./api/client";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -24,6 +26,8 @@ function App() {
             <Navbar />
             <main>
               <Outlet />
+
+              <TanStackRouterDevtools position="bottom-right" />
             </main>
           </UserProvider>
         </AuthProvider>
