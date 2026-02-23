@@ -156,10 +156,10 @@ def chat_interface():
     # Pre-load the LLM
     try:
         get_llm()
-        print("✓ Connected to OpenAI successfully!\n")
+        print("✓ Connected to GRO successfully!\n")
     except Exception as e:
-        print(f"✗ Could not connect to OpenAI: {e}")
-        print("Please set OPENAI_API_KEY environment variable\n")
+        print(f"✗ Could not connect to Groq: {e}")
+        print("Please set GROQ_API_KEY environment variable\n")
         return
     
     while True:
