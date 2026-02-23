@@ -25,7 +25,7 @@ export const Home = () => {
         </Typography>
         <Box
           component="img"
-          src="../src/assets/therapy.jpg"
+          src="therapy.jpg"
           alt="Therapy illustration"
           sx={{ width: "100%", maxWidth: 400, mt: 3, borderRadius: 2 }}
         />
