@@ -1,0 +1,28 @@
+# Django
+django==5.2.6
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+
+# LlamaIndex packages
+llama-index==0.14.7
+llama-index-core==0.14.7
+llama-index-embeddings-huggingface==0.6.1
+llama-index-llms-groq==0.4.1
+llama-index-readers-web==0.5.5
+
+# OpenAI and ML
+openai>=1.12.0,<2.0
+sentence-transformers>=2.5.0,<3.0
+torch>=2.2.0,<3.0
+transformers>=4.38.0,<5.0
+
+# Utilities
+requests>=2.31.0,<3.0
+python-dotenv>=1.0.1,<2.0
+
+# Dev tools
+pytest>=7.4.0,<8.0
+pytest-django>=4.8.0,<5.0
+black>=24.9.0,<25.0
+flake8>=7.0.0,<8.0
+mypy>=1.8.0,<2.0

@@ -11,7 +11,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 const queryClient = new QueryClient();
 
-function App() {
+function AppInner() {
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -20,15 +20,23 @@ function App() {
 
   return (
     <>
+      <Navbar />
+      <main>
+        <Outlet />
+        <TanStackRouterDevtools position="bottom-right" />
+      </main>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <UserProvider>
             <Navbar />
-            <main>
-              <Outlet />
-
-              <TanStackRouterDevtools position="bottom-right" />
-            </main>
+            <AppInner />
           </UserProvider>
         </AuthProvider>
       </QueryClientProvider>

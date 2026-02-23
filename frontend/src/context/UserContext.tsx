@@ -9,16 +9,23 @@ import React, {
 import { useQuery } from "@tanstack/react-query";
 import api from "../api/client";
 
-// Define context shape
-interface UserContextType {
-  user: any | null;
-  setUser: Dispatch<SetStateAction<null>>;
-  isLoading: boolean;
-  error: unknown;
-  refetch: () => {} | null | undefined;
+// Move hook to its own file to fix react-refresh warning
+// (or keep here and suppress the warning)
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
 }
 
-// Default value
+interface UserContextType {
+  user: User | null;
+  setUser: Dispatch<SetStateAction<User | null>>;
+  isLoading: boolean;
+  error: unknown;
+  refetch: () => void;
+}
+
 const UserContext = createContext<UserContextType>({
   user: null,
   setUser: () => null,
@@ -27,11 +34,10 @@ const UserContext = createContext<UserContextType>({
   refetch: () => {},
 });
 
-// Provider component
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const {
     data: userData,
@@ -40,21 +46,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     refetch,
   } = useQuery({
     queryKey: ["current_user_info"],
-    queryFn: () => api.get("current_user"),
+    queryFn: () => api.get<User>("current_user"),
     staleTime: 2 * 60,
     retry: false,
-    enabled: false,
+    enabled: !!localStorage.getItem("access"),
   });
 
   useEffect(() => {
     if (userData) {
       setUser(userData.data);
     }
-
     if (error) {
       setUser(null);
     }
-  }, [userData]);
+  }, [userData, error]);
 
   return (
     <UserContext.Provider value={{ user, setUser, isLoading, error, refetch }}>
@@ -63,5 +68,5 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-// Custom hook for easy access
+// eslint-disable-next-line react-refresh/only-export-components
 export const useUser = () => useContext(UserContext);

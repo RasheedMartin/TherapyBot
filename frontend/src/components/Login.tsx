@@ -37,12 +37,6 @@ export const Login = () => {
     mutationFn: (data: { username: string; password: string }) =>
       api.post("/token/", data),
     onSuccess: (response) => {
-      const token = response.data.token;
-      if (rememberMe) {
-        localStorage.setItem("authToken", token);
-      } else {
-        sessionStorage.setItem("authToken", token);
-      }
       const { access, refresh } = response.data;
       login(access, refresh);
       refetch();

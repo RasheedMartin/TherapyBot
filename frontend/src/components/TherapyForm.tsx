@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -8,54 +8,24 @@ import {
   Typography,
   Alert,
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
 import api from "../api/client";
-
+import { AxiosError, type AxiosResponse } from "axios";
+interface ApiResponse {
+  response?: string;
+  answer?: string;
+  result?: string;
+  error?: string;
+}
 export const TherapyForm = () => {
   const [question, setQuestion] = useState("");
   const [therapyType, setTherapyType] = useState("Family Therapy");
   const [result, setResult] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const {
-    data: response,
-    error,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["therapy_session", question, therapyType],
-    queryFn: () =>
-      api.get("get_started", {
-        params: {
-          question: question,
-          therapy_type: therapyType,
-        },
-      }),
-    enabled: false,
-    retry: false,
-  });
-
-  useEffect(() => {
-    if (response) {
-      console.log("Full response:", response);
-      console.log("Response data:", response.data);
-
-      // Try different possible response structures
-      const resultText =
-        response.data?.response ||
-        response.data?.answer ||
-        response.data?.result ||
-        JSON.stringify(response.data);
-
-      setResult(resultText);
-    }
-
-    if (error) {
-      console.error("Error:", error);
-      setResult("Something went wrong. Please try again.");
-    }
-  }, [response, error]);
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
     e.preventDefault();
 
     if (!question.trim()) {
@@ -64,25 +34,43 @@ export const TherapyForm = () => {
     }
 
     setResult("");
-    refetch();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response: AxiosResponse<ApiResponse> = await api.post<ApiResponse>(
+        "get_started/",
+        {
+          question,
+          therapy_type: therapyType,
+        },
+      );
+
+      const resultText: string =
+        response.data.response ??
+        response.data.answer ??
+        response.data.result ??
+        JSON.stringify(response.data);
+
+      setResult(resultText);
+    } catch (err: unknown) {
+      let message = "Something went wrong. Please try again.";
+
+      if (err instanceof AxiosError) {
+        message = err.response?.data?.error ?? err.message ?? message;
+      }
+
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <Box
-      sx={{
-        maxWidth: 600,
-        mx: "auto",
-        mt: 6,
-        p: 3,
-      }}
-    >
+    <Box sx={{ maxWidth: 600, mx: "auto", mt: 6, p: 3 }}>
       <Paper
         elevation={3}
-        sx={{
-          p: 4,
-          borderRadius: 3,
-          backgroundColor: "background.paper",
-        }}
+        sx={{ p: 4, borderRadius: 3, backgroundColor: "background.paper" }}
       >
         <Typography
           variant="h5"
@@ -104,7 +92,6 @@ export const TherapyForm = () => {
             margin="normal"
             placeholder="e.g. Family Therapy"
           />
-
           <TextField
             fullWidth
             label="Question"
@@ -117,14 +104,7 @@ export const TherapyForm = () => {
             placeholder="Enter your therapy question"
             required
           />
-
-          <Box
-            sx={{
-              mt: 3,
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
             <Button
               type="submit"
               variant="contained"
@@ -149,15 +129,11 @@ export const TherapyForm = () => {
             load.
           </Alert>
         )}
-
         {error && (
           <Alert severity="error" sx={{ mt: 3 }}>
-            {error?.response?.data?.error ||
-              error?.message ||
-              "Something went wrong. Please try again."}
+            {error}
           </Alert>
         )}
-
         {result && !isLoading && (
           <Box mt={4}>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>
@@ -165,11 +141,7 @@ export const TherapyForm = () => {
             </Typography>
             <Paper
               elevation={0}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                backgroundColor: "grey.100",
-              }}
+              sx={{ p: 2, borderRadius: 2, backgroundColor: "grey.100" }}
             >
               <Typography variant="body1" style={{ whiteSpace: "pre-wrap" }}>
                 {result}
