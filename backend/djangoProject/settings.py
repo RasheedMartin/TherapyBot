@@ -93,7 +93,7 @@ REST_FRAMEWORK = {
 }
 
 
-DATABASE_URL = os.getenv("DATABASE_PUBLIC_URL") or os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
     import urllib.parse
