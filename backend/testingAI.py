@@ -1,6 +1,6 @@
 import os
 from llama_index.core import VectorStoreIndex, Settings, StorageContext, load_index_from_storage
-from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding  # pip: llama-index-embeddings-huggingface-api
+from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding 
 from llama_index.llms.groq import Groq
 from llama_index.readers.web import SimpleWebPageReader
 
@@ -13,13 +13,13 @@ INDEX_DIR = "./storage"
 EMBED_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Initialize REMOTE HuggingFace Inference API embedding model
-# Requires HF_API_KEY env var — free tier available at huggingface.co/settings/tokens
+# Requires HF_API_KEY env var
 remote_embed_model = HuggingFaceInferenceAPIEmbedding(
     model_name=EMBED_MODEL_NAME,
     token=os.getenv("HF_API_KEY"),
 )
 
-# Set global settings — no local model download, no PyTorch
+# Set global settings
 Settings.embed_model = remote_embed_model
 Settings.chunk_size = 512
 Settings.chunk_overlap = 50

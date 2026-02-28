@@ -14,8 +14,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "")
 
 DEBUG = bool(os.getenv("DEBUG", False))
 
-# Reads ALLOWED_HOSTS from env var as a comma-separated list, e.g.:
-# ALLOWED_HOSTS=mytherapybot.up.railway.app,www.mytherapybot.com
+
 _allowed = os.getenv("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
 
@@ -93,12 +92,8 @@ REST_FRAMEWORK = {
     ),
 }
 
-# SQLite is fine for development, but note it is ephemeral on Railway —
-# the database resets on every deploy. If you need persistence, add a
-# Railway Postgres plugin and swap this for a postgres connection.
-# Use Postgres in production (Railway sets DATABASE_URL automatically),
-# fall back to SQLite for local development.
-DATABASE_URL = os.getenv("DATABASE_URL")
+
+DATABASE_URL = os.getenv("DATABASE_PUBLIC_URL") or os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
     import urllib.parse
