@@ -96,12 +96,30 @@ REST_FRAMEWORK = {
 # SQLite is fine for development, but note it is ephemeral on Railway —
 # the database resets on every deploy. If you need persistence, add a
 # Railway Postgres plugin and swap this for a postgres connection.
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'backend' / 'db.sqlite3',
+# Use Postgres in production (Railway sets DATABASE_URL automatically),
+# fall back to SQLite for local development.
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    import urllib.parse
+    parsed = urllib.parse.urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed.path[1:],
+            'USER': parsed.username,
+            'PASSWORD': parsed.password,
+            'HOST': parsed.hostname,
+            'PORT': parsed.port,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'backend' / 'db.sqlite3',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
