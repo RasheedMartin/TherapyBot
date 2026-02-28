@@ -15,11 +15,18 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip to latest version
+# Upgrade pip
 RUN pip install --upgrade pip
 
 # Install Python dependencies
 COPY requirements.txt .
+
+# Install CPU-only torch first to prevent the default CUDA build (~1.5GB larger) from
+# being pulled in as a transitive dependency. Since we now use a remote embedding API
+# this layer may be skipped entirely if nothing in requirements.txt needs torch.
+# Keeping it here as a safety net — it is a no-op if torch is not required.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files

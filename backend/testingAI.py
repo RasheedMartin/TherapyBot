@@ -1,6 +1,6 @@
 import os
 from llama_index.core import VectorStoreIndex, Settings, StorageContext, load_index_from_storage
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding  # pip: llama-index-embeddings-huggingface-api
 from llama_index.llms.groq import Groq
 from llama_index.readers.web import SimpleWebPageReader
 
@@ -12,11 +12,15 @@ load_dotenv()
 INDEX_DIR = "./storage"
 EMBED_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
-# Initialize local embedding model (free, no API needed)
-local_embed_model = HuggingFaceEmbedding(model_name=EMBED_MODEL_NAME)
+# Initialize REMOTE HuggingFace Inference API embedding model
+# Requires HF_API_KEY env var — free tier available at huggingface.co/settings/tokens
+remote_embed_model = HuggingFaceInferenceAPIEmbedding(
+    model_name=EMBED_MODEL_NAME,
+    token=os.getenv("HF_API_KEY"),
+)
 
-# Set global settings
-Settings.embed_model = local_embed_model
+# Set global settings — no local model download, no PyTorch
+Settings.embed_model = remote_embed_model
 Settings.chunk_size = 512
 Settings.chunk_overlap = 50
 
@@ -63,26 +67,22 @@ def build_index_local():
     """
     print("Building index from web sources...")
     
-    # Load documents from web
     loader = SimpleWebPageReader()
     documents = loader.load_data(
         urls=[
             "https://childmind.org/article/helping-resistant-teens-into-treatment/",
             "https://childmind.org/article/anxiety-disorders-in-children/",
             "https://childmind.org/article/what-is-cbt/",
-            # Add more therapy URLs as needed
         ]
     )
     
     print(f"Loaded {len(documents)} documents")
     
-    # Create index with local embeddings (no LLM needed for indexing)
     index = VectorStoreIndex.from_documents(
         documents,
         show_progress=True
     )
     
-    # Persist index to disk
     index.storage_context.persist(persist_dir=INDEX_DIR)
     print(f"Index saved to {INDEX_DIR}")
     
@@ -104,30 +104,19 @@ def load_index_local():
 def therapy_chat(question: str, therapy_type: str = "general therapy") -> str:
     """
     Answer a user question using the precomputed local therapy index.
-    
-    Args:
-        question: User's question
-        therapy_type: Type of therapy context (e.g., "CBT", "DBT", "teen counseling")
-    
-    Returns:
-        Response string from the therapy bot
     """
     if is_crisis_message(question):
         return CRISIS_RESPONSE
 
-    # Ensure LLM is loaded
     get_llm()
     
-    # Load index
     index = load_index_local()
     
-    # Create query engine
     query_engine = index.as_query_engine(
         similarity_top_k=3,
         response_mode="compact"
     )
     
-    # Format the question with therapy context
     formatted_question = (
         f"You are a compassionate assistant specialized in {therapy_type}. "
         f"If the user expresses any suicidal thoughts, self-harm, or is in crisis, "
@@ -136,7 +125,7 @@ def therapy_chat(question: str, therapy_type: str = "general therapy") -> str:
         f"You are not a replacement for professional help.\n\n"
         f"Question: {question}"
     )
-    # Query the index
+
     print("Generating response...")
     response = query_engine.query(formatted_question)
     
@@ -147,16 +136,15 @@ def chat_interface():
     Simple command-line chat interface for the therapy bot.
     """
     print("\n" + "="*60)
-    print("Therapy Support Bot (OpenAI Edition)")
+    print("Therapy Support Bot")
     print("="*60)
     print("Type 'quit' or 'exit' to end the conversation")
     print("Type 'rebuild' to rebuild the index from sources")
     print("="*60 + "\n")
     
-    # Pre-load the LLM
     try:
         get_llm()
-        print("✓ Connected to GRO successfully!\n")
+        print("✓ Connected to Groq successfully!\n")
     except Exception as e:
         print(f"✗ Could not connect to Groq: {e}")
         print("Please set GROQ_API_KEY environment variable\n")
@@ -186,8 +174,6 @@ def chat_interface():
             traceback.print_exc()
 
 if __name__ == "__main__":
-    # Uncomment to rebuild index on first run
+    # Uncomment to rebuild index on first run:
     # build_index_local()
-    
-    # Start chat interface
     chat_interface()

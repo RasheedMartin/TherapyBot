@@ -3,13 +3,16 @@ django==5.2.6
 djangorestframework==3.16.1
 django-cors-headers==4.9.0
 
-# LlamaIndex packages
-llama-index==0.14.7
-llama-index-core==0.14.7
-llama-index-embeddings-huggingface==0.6.1
+# LlamaIndex — all pinned to the same release date for compatibility
+llama-index==0.14.15
+llama-index-core==0.14.15
 llama-index-llms-groq==0.4.1
 llama-index-readers-web==0.5.5
+
+# Remote HuggingFace Inference API embeddings (no PyTorch, no local model download)
+llama-index-embeddings-huggingface-api==0.4.1
 
 # Utilities
 requests>=2.31.0,<3.0
 python-dotenv>=1.0.1,<2.0
+gunicorn>=21.0.0,<22.0
