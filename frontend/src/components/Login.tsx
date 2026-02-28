@@ -40,7 +40,7 @@ export const Login = () => {
       const { access, refresh } = response.data;
       login(access, refresh);
       refetch();
-      navigate({ to: "/get-started" });
+      navigate({ to: "/chat" });
     },
     onError: () => logout(),
   });

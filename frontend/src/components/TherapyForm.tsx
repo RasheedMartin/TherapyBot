@@ -7,21 +7,41 @@ import {
   TextField,
   Typography,
   Alert,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  type SelectChangeEvent,
 } from "@mui/material";
 import api from "../api/client";
 import { AxiosError, type AxiosResponse } from "axios";
+
 interface ApiResponse {
   response?: string;
   answer?: string;
   result?: string;
   error?: string;
 }
+
+const THERAPY_TYPES = [
+  "Family Therapy",
+  "Cognitive Behavioural Therapy (CBT)",
+  "Dialectical Behaviour Therapy (DBT)",
+  "Teen Counseling",
+  "Anxiety Support",
+  "General Therapy",
+];
+
 export const TherapyForm = () => {
   const [question, setQuestion] = useState("");
-  const [therapyType, setTherapyType] = useState("Family Therapy");
+  const [therapyType, setTherapyType] = useState("General Therapy");
   const [result, setResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleTherapyTypeChange = (e: SelectChangeEvent) => {
+    setTherapyType(e.target.value);
+  };
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -83,15 +103,22 @@ export const TherapyForm = () => {
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
-          <TextField
-            fullWidth
-            label="Therapy Type"
-            variant="outlined"
-            value={therapyType}
-            onChange={(e) => setTherapyType(e.target.value)}
-            margin="normal"
-            placeholder="e.g. Family Therapy"
-          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="therapy-type-label">Therapy Type</InputLabel>
+            <Select
+              labelId="therapy-type-label"
+              value={therapyType}
+              label="Therapy Type"
+              onChange={handleTherapyTypeChange}
+            >
+              {THERAPY_TYPES.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <TextField
             fullWidth
             label="Question"
@@ -103,6 +130,7 @@ export const TherapyForm = () => {
             margin="normal"
             placeholder="Enter your therapy question"
             required
+            InputLabelProps={{ shrink: true }}
           />
           <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
             <Button

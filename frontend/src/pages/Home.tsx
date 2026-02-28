@@ -40,7 +40,7 @@ export const Home = () => {
           color="primary"
           sx={{ mt: 4, px: 5 }}
           onClick={() => {
-            navigate({ to: "/get-started" });
+            navigate({ to: "/chat" });
           }}
         >
           Start Chatting

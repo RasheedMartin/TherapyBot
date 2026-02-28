@@ -41,7 +41,7 @@ export const resetPasswordRoute = new Route({
 
 export const gettingStartedRoute = new Route({
   getParentRoute: () => rootRoute,
-  path: "get-started",
+  path: "chat",
   component: GettingStarted,
 });
 
