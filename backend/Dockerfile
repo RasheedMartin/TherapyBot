@@ -1,0 +1,39 @@
+# Use official lightweight Python image
+FROM python:3.11-slim
+
+# Prevent Python from writing pyc files and buffering stdout/stderr
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Install Python dependencies
+COPY requirements.txt .
+
+# Install CPU-only torch first to prevent the default CUDA build (~1.5GB larger) from
+# being pulled in as a transitive dependency. Since we now use a remote embedding API
+# this layer may be skipped entirely if nothing in requirements.txt needs torch.
+# Keeping it here as a safety net — it is a no-op if torch is not required.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project files
+COPY . .
+
+# Expose Railway's default port
+EXPOSE 8000
+
+# Start the app
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn djangoProject.wsgi:application --bind 0.0.0.0:8000"]

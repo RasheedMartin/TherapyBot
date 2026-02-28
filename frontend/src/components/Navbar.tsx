@@ -47,11 +47,8 @@ export const Navbar = () => {
           {" "}
           Therapy Bot
         </Button>
-        <Button
-          color="inherit"
-          onClick={() => navigate({ to: "/get-started" })}
-        >
-          Get Started
+        <Button color="inherit" onClick={() => navigate({ to: "/chat" })}>
+          Chat
         </Button>
         <Box flexGrow={1} />
         <Button color="inherit" onClick={handleLoginLogout}>

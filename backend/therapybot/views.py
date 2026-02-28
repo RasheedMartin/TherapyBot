@@ -19,7 +19,6 @@ load_dotenv()
 @permission_classes([IsAuthenticated])
 def current_user(request):
     user = request.user
-    print(user)
     return JsonResponse({
         'id': user.id,
         'username': user.username,
@@ -44,16 +43,15 @@ def register_user(request):
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create_user(username=username, password=password, email=email)
-    print(user)
-    return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
+    return Response({'message': f'User {user} has been created successfully'}, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_started(request):
     therapy_type = request.data.get('therapy_type')
     question = request.data.get('question')
     result = therapy_chat(question, therapy_type)
-    return Response({'result': str(result)})
+    return Response({'response': str(result)})
 
 @api_view(['POST'])
 def forgot_password(request):
@@ -106,7 +104,6 @@ def reset_password(request):
     uid = request.data.get('uid')
     token = request.data.get('token')
     new_password = request.data.get('new_password')
-    print(request.data)
 
     if not all([uid, token, new_password]):
         return Response({'error': 'uid, token, and new_password are required'}, status=status.HTTP_400_BAD_REQUEST)

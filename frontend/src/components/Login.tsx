@@ -25,28 +25,28 @@ export const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     loginMutation.mutate({
       username,
       password,
     });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
+  };
+
   const loginMutation = useMutation({
     mutationFn: (data: { username: string; password: string }) =>
       api.post("/token/", data),
     onSuccess: (response) => {
-      const token = response.data.token;
-      if (rememberMe) {
-        localStorage.setItem("authToken", token);
-      } else {
-        sessionStorage.setItem("authToken", token);
-      }
       const { access, refresh } = response.data;
       login(access, refresh);
       refetch();
-      navigate({ to: "/get-started" });
+      navigate({ to: "/chat" });
     },
     onError: () => logout(),
   });
@@ -102,6 +102,7 @@ export const Login = () => {
               required
               fullWidth
               onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
             <TextField
               type="password"
@@ -112,6 +113,7 @@ export const Login = () => {
               required
               fullWidth
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
 
             <FormControlLabel

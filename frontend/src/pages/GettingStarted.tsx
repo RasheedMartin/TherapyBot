@@ -31,8 +31,8 @@ export const GettingStarted = () => {
           Hello, {user?.username ?? "Guest"}!
         </Typography>
         <Typography variant="body1" color="textSecondary" gutterBottom>
-          Welcome to TherapyBot! Let’s get started by filling out a few details
-          so we can personalize your experience.
+          You're in a safe space. Share what's on your mind and TherapyBot will
+          provide thoughtful, evidence-based guidance to support you.
         </Typography>
 
         <Divider sx={{ my: 3 }} />
