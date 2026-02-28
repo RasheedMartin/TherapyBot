@@ -2,6 +2,7 @@
 django==5.2.6
 djangorestframework==3.16.1
 django-cors-headers==4.9.0
+djangorestframework-simplejwt==5.5.0
 
 # LlamaIndex — all pinned to the same release date for compatibility
 llama-index==0.14.15
