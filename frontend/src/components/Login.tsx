@@ -25,12 +25,18 @@ export const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     loginMutation.mutate({
       username,
       password,
     });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
   };
 
   const loginMutation = useMutation({
@@ -96,6 +102,7 @@ export const Login = () => {
               required
               fullWidth
               onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
             <TextField
               type="password"
@@ -106,6 +113,7 @@ export const Login = () => {
               required
               fullWidth
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
 
             <FormControlLabel
