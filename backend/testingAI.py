@@ -3,10 +3,18 @@ from llama_index.core import VectorStoreIndex, Settings, StorageContext, load_in
 from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding 
 from llama_index.llms.groq import Groq
 from llama_index.readers.web import SimpleWebPageReader
+import ssl
+import certifi
+
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+
+ssl._create_default_https_context = ssl.create_default_context
 
 # Configuration
 INDEX_DIR = "./storage"

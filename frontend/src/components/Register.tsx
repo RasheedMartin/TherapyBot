@@ -30,7 +30,6 @@ export const RegisterPage = () => {
     confirmPassword: "",
   });
 
-  // Mutation for registering a user
   const registerMutation = useMutation<
     AxiosResponse<any>,
     Error,
@@ -47,7 +46,7 @@ export const RegisterPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match");
@@ -87,7 +86,7 @@ export const RegisterPage = () => {
           Create a new account to start using TherapyBot
         </Typography>
 
-        <Box component="form" onSubmit={() => handleSubmit}>
+        <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={3} mt={2}>
             <TextField
               name="username"
