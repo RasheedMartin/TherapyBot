@@ -17,12 +17,17 @@ MARKER_RE = re.compile(r"\[S(\d+)\]")
 _BRACKETS = str.maketrans({"【": "[", "】": "]", "［": "[", "］": "]", "〔": "[", "〕": "]"})
 # Models use narrow/no-break spaces (e.g. "GAD‑7\u202f9"); some fonts render them with ~no width
 _ODD_SPACES = str.maketrans({"\u202f": " ", "\u00a0": " ", "\u2009": " ", "\u2007": " "})
+# ...and zero-width characters, even inside markers ("[\u200bS1]")
+_INVISIBLE = str.maketrans({c: None for c in "\u200b\u200c\u200d\u2060\ufeff"})
+# Statements drawn from the FACTS block (computed from the database) cite it as [FACTS]
+FACTS = "FACTS"
+FACTS_RE = re.compile(r"\[\s*FACTS\s*\]", re.IGNORECASE)
 _GROUPED_RE = re.compile(r"\[\s*(S\d+(?:\s*[,;]\s*S\d+)+)\s*\]")
 
 
 def normalize_markers(text: str) -> str:
     """Models sometimes write 【S1】 or [S1, S2]; rewrite those as [S1] / [S1][S2] before validating."""
-    text = (text or "").translate(_BRACKETS).translate(_ODD_SPACES)
+    text = (text or "").translate(_BRACKETS).translate(_ODD_SPACES).translate(_INVISIBLE)
     text = _GROUPED_RE.sub(lambda m: "".join(f"[{p.strip()}]" for p in re.split(r"[,;]", m.group(1))), text)
     return re.sub(r"\[\s*S\s*(\d+)\s*\]", r"[S\1]", text)
 
@@ -64,14 +69,17 @@ def render_sources(sources: list[Source]) -> str:
 def _valid_labels(raw, by_label: dict) -> list[str]:
     labels = []
     for item in raw if isinstance(raw, list) else []:
-        label = str(item).translate(_BRACKETS).strip().strip("[]").replace(" ", "").upper()
-        if label in by_label and label not in labels:
+        label = str(item).translate(_BRACKETS).translate(_INVISIBLE).strip().strip("[]").replace(" ", "").upper()
+        if (label in by_label or label == FACTS) and label not in labels:
             labels.append(label)
     return labels
 
 
 def validate_items(items, sources: list[Source]) -> tuple[list[dict], int]:
-    """Keep {"text", "sources"} items that cite at least one real source. Returns (kept, dropped_count)."""
+    """
+    Keep {"text", "sources"} items that cite at least one real source or the FACTS block. Returns
+    (kept, dropped_count).
+    """
     by_label = {s.label: s for s in sources}
     kept, dropped = [], 0
     for item in items if isinstance(items, list) else []:
@@ -86,7 +94,10 @@ def validate_items(items, sources: list[Source]) -> tuple[list[dict], int]:
 
 
 def validate_text(text: str, sources: list[Source]) -> tuple[str, list[str]]:
-    """Remove [S#] markers that don't match a supplied source. Returns (clean text, labels actually cited)."""
+    """
+    Remove [S#] markers that don't match a supplied source, and [FACTS] markers (FACTS is shown separately).
+    Returns (clean text, labels actually cited), with "FACTS" among the labels if the text relied on it.
+    """
     by_label = {s.label: s for s in sources}
     cited = []
 
@@ -98,7 +109,11 @@ def validate_text(text: str, sources: list[Source]) -> tuple[str, list[str]]:
             return match.group(0)
         return ""
 
-    clean = MARKER_RE.sub(keep, normalize_markers(text))
+    text = normalize_markers(text)
+    if FACTS_RE.search(text):
+        cited.append(FACTS)
+        text = FACTS_RE.sub("", text)
+    clean = MARKER_RE.sub(keep, text)
     return re.sub(r"\s+([.,;:])", r"\1", re.sub(r"[ \t]{2,}", " ", clean)).strip(), cited
 
 

@@ -252,3 +252,28 @@ class MarkerNormalizationTests(APITestCase):
                 self.assertTrue(cited)
         kept, _ = validate_items([{"text": "x", "sources": ["【S2】", " s1 "]}], sources)
         self.assertEqual(kept[0]["sources"], ["S2", "S1"])
+
+
+class CitationEdgeCaseTests(APITestCase):
+    def test_zero_width_characters_inside_markers_still_count(self):
+        sources = label_chunks([chunk(1)])
+        self.assertEqual(validate_text("Intake GAD-7 was 15 [​S1].", sources), ("Intake GAD-7 was 15 [S1].", ["S1"]))
+        kept, _ = validate_items([{"text": "x", "sources": ["​S1"]}], sources)
+        self.assertEqual(kept[0]["sources"], ["S1"])
+
+    def test_facts_citations_ground_an_answer_without_showing_a_marker(self):
+        sources = label_chunks([chunk(1)])
+        self.assertEqual(validate_text("Latest GAD-7 is 11 [FACTS].", sources), ("Latest GAD-7 is 11.", ["FACTS"]))
+        kept, dropped = validate_items([{"text": "GAD-7 down 4 points", "sources": ["FACTS"]}], sources)
+        self.assertEqual((kept[0]["sources"], dropped), (["FACTS"], 0))
+
+    @mock.patch("therapybot.clinical.assistant.complete_json")
+    def test_note_that_names_ideation_gets_a_risk_flag_even_without_keywords_in_the_source(self, complete):
+        from therapybot.clinical import assistant
+
+        complete.return_value = {"sections": {"assessment": "Passive suicidal ideation without a plan."}, "review_flags": []}
+        therapist = self.make_therapist()
+        client, _ = self.link(therapist, self.make_user())
+        draft = assistant.draft_progress_note(actor=therapist, client=client, note_format="dap",
+                                              source_text="C: Some nights maybe I shouldn't be here.")
+        self.assertIn("suicide or self-harm", draft["review_flags"][0])

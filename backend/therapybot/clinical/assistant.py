@@ -119,8 +119,9 @@ def draft_progress_note(*, actor, client: Client, source_text: str, note_format:
         str(f).strip() for f in raw.get("review_flags", [])
         if str(f).strip() and not str(f).strip().startswith("<")  # drop echoed placeholders
     ][:8]
-    # Don't rely on the model alone to notice risk content in the source
-    if safety.mentions_risk(source_text):
+    # Don't rely on the model alone to flag risk: check the source, and the note the model wrote from it
+    # (passive ideation like "maybe I shouldn't be here" has no keyword, but the note will name it)
+    if safety.mentions_risk(source_text) or safety.mentions_risk(" ".join(result.values())):
         flags.insert(0, "The source mentions suicide or self-harm: confirm the risk assessment and safety plan are documented.")
     audit.record(actor, "ai.draft_note", request=request, client=client, format=note_format, flags=len(flags))
     return {"format": note_format, "sections": result, "review_flags": flags}
