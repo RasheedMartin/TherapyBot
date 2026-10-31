@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework_simplejwt.views import TokenBlacklistView, TokenObtainPairView, TokenRefreshView
 
-from therapybot.views import AuthThrottle
+from therapybot.views.common import AuthThrottle
 
 
 class ThrottledTokenObtainPairView(TokenObtainPairView):

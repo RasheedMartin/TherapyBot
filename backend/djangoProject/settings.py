@@ -155,9 +155,17 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
 # --- AI ----------------------------------------------------------------------
 
+# Which ChatModel implementation to use (see therapybot/llm). Only "groq" exists today.
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 # Smaller, faster model for risk screening and conversation summaries
 GROQ_FAST_MODEL = os.getenv("GROQ_FAST_MODEL", "openai/gpt-oss-20b")
+# Local embedding model (FastEmbed); changing it requires re-embedding all content
+EMBED_MODEL_NAME = os.getenv("EMBED_MODEL_NAME", "BAAI/bge-small-en-v1.5")
+FASTEMBED_CACHE_PATH = os.getenv("FASTEMBED_CACHE_PATH", "")
+# Cosine-similarity cutoffs, calibrated for bge-small-en-v1.5: use a chunk as context / show it as a link
+RAG_MIN_RELEVANCE = float(os.getenv("RAG_MIN_RELEVANCE", "0.5"))
+RAG_MIN_SOURCE_RELEVANCE = float(os.getenv("RAG_MIN_SOURCE_RELEVANCE", "0.6"))
 CHAT_HISTORY_TURNS = int(os.getenv("CHAT_HISTORY_TURNS", "10"))
 CHAT_MAX_MESSAGE_LENGTH = int(os.getenv("CHAT_MAX_MESSAGE_LENGTH", "4000"))
 

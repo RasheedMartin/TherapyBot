@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from therapybot.ai import build_index
+from therapybot.rag import build_index
 from therapybot.articles import import_medlineplus
 from therapybot.models import KnowledgeArticle
 

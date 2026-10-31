@@ -1,3 +1,4 @@
+import json
 from unittest import mock
 
 from django.contrib.auth.models import User
@@ -10,12 +11,28 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient
 
-from therapybot import ai
+from therapybot import ai, llm, rag, safety
 from therapybot.models import Conversation, Message, Plan, PlanStep, Profile, SavedProvider, SessionNote
 from therapybot.verification import email_verification_token
 
 STRONG_PASSWORD = "calm-River-42-lantern"
 CONSENT = {"confirm_age": True, "accept_terms": True}
+
+
+def fake_models(main=None, fast=None):
+    """Patch the chat models: `main` answers replies and drafts, `fast` is the risk screener."""
+    main = main or mock.MagicMock(name="main model")
+    fast = fast or mock.MagicMock(name="fast model")
+    return mock.patch("therapybot.llm.get_chat_model", side_effect=lambda **kw: fast if kw.get("fast") else main)
+
+
+def screener(risk=None, error=False, **fields):
+    model = mock.MagicMock(name="fast model")
+    if error:
+        model.complete.side_effect = RuntimeError("groq down")
+    else:
+        model.complete.return_value = json.dumps({"risk": risk, **fields})
+    return model
 
 
 class CrisisDetectionTests(TestCase):
@@ -29,68 +46,59 @@ class CrisisDetectionTests(TestCase):
             self.assertFalse(ai.is_crisis_message(text), text)
 
     def test_crisis_short_circuits_llm(self):
-        with mock.patch.object(ai, "get_llm") as get_llm, mock.patch.object(ai, "get_fast_llm") as fast:
+        main, fast = mock.MagicMock(), mock.MagicMock()
+        with fake_models(main, fast):
             reply, is_crisis = ai.therapy_chat("I want to kill myself")
         self.assertTrue(is_crisis)
         self.assertIn("988", reply)
-        get_llm.assert_not_called()
-        fast.assert_not_called()  # explicit intent never waits on the screener
-
-    def fake_screener(self, risk=None, error=False):
-        llm = mock.MagicMock()
-        if error:
-            llm.chat.side_effect = RuntimeError("groq down")
-        else:
-            llm.chat.return_value.message.content = f'{{"risk": "{risk}"}}'
-        return mock.patch.object(ai, "get_fast_llm", return_value=llm)
+        main.complete.assert_not_called()
+        fast.complete.assert_not_called()  # explicit intent never waits on the screener
 
     def test_screener_catches_indirect_risk(self):
-        with self.fake_screener("elevated"):
-            self.assertEqual(ai.assess_risk("everyone would be better off without me"), "elevated")
-        with self.fake_screener("imminent"):
-            self.assertEqual(ai.assess_risk("I took all my pills"), "imminent")
+        with fake_models(fast=screener("elevated")):
+            self.assertEqual(safety.assess_risk("everyone would be better off without me"), "elevated")
+        with fake_models(fast=screener("imminent")):
+            self.assertEqual(safety.assess_risk("I took all my pills"), "imminent")
 
     def test_topic_mentions_are_at_least_elevated(self):
         # Grief after a suicide shouldn't get a canned crisis card, but it does get careful handling
-        with self.fake_screener("none"):
-            self.assertEqual(ai.assess_risk("my grandpa died by suicide years ago"), "elevated")
+        with fake_models(fast=screener("none")):
+            self.assertEqual(safety.assess_risk("my grandpa died by suicide years ago"), "elevated")
 
     def test_screener_failure(self):
-        with self.fake_screener(error=True):
-            self.assertEqual(ai.assess_risk("work is stressful"), "none")  # fail open
-            self.assertEqual(ai.assess_risk("I keep thinking about suicide"), "imminent")  # fail safe
+        with fake_models(fast=screener(error=True)):
+            self.assertEqual(safety.assess_risk("work is stressful"), "none")  # fail open
+            self.assertEqual(safety.assess_risk("I keep thinking about suicide"), "imminent")  # fail safe
 
     def test_harm_in_progress_gets_emergency_response(self):
-        llm = mock.MagicMock()
-        llm.chat.return_value.message.content = '{"risk": "imminent", "in_progress": true}'
-        with mock.patch.object(ai, "get_fast_llm", return_value=llm), mock.patch.object(ai, "get_llm") as main:
+        main = mock.MagicMock()
+        with fake_models(main, screener("imminent", in_progress=True)):
             assessment = {}
             reply, is_crisis = ai.therapy_chat("I just took a whole bottle of pills", assessment=assessment)
         self.assertTrue(is_crisis and assessment["emergency"])
         self.assertIn("911", reply)
         self.assertIn("1-800-222-1222", reply)
-        main.assert_not_called()
+        main.complete.assert_not_called()
 
     def test_elevated_risk_adds_safety_guidance(self):
-        llm = mock.MagicMock()
-        llm.chat.return_value.message.content = "I'm here with you."
-        with self.fake_screener("elevated"), mock.patch.object(ai, "get_llm", return_value=llm), \
-                mock.patch.object(ai, "retrieve_context", return_value=""):
+        main = mock.MagicMock()
+        main.complete.return_value = "I'm here with you."
+        with fake_models(main, screener("elevated")), mock.patch("therapybot.rag.retrieve_context", return_value=""):
             assessment = {}
             reply, is_crisis = ai.therapy_chat("I won't be a problem much longer", assessment=assessment)
         self.assertFalse(is_crisis)
         self.assertEqual(assessment["risk"], "elevated")
-        system_prompt = llm.chat.call_args.args[0][0].content
+        system_prompt = main.complete.call_args.args[0][0].content
         self.assertIn("988", system_prompt)
 
 
 class KnowledgeBaseTests(TestCase):
     def test_articles_parse_with_titles_and_no_h1(self):
-        docs = ai.load_knowledge_documents()
+        docs = rag.load_knowledge_documents()
         self.assertGreater(len(docs), 0)
         for doc in docs:
             self.assertTrue(doc.metadata["title"])
-            self.assertFalse(doc.text.startswith("# "), doc.id_)
+            self.assertFalse(doc.text.startswith("# "), doc.id)
             self.assertNotIn("---", doc.text[:5])
 
     def test_refuses_to_index_error_pages(self):
@@ -99,13 +107,43 @@ class KnowledgeBaseTests(TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             Path(tmp, "bad.md").write_text("<html><title>403 Forbidden</title></html>" + " " * 300)
-            with mock.patch.object(ai, "KNOWLEDGE_DIR", Path(tmp)), self.assertRaises(ValueError):
-                ai.load_knowledge_documents()
+            with mock.patch("therapybot.rag.knowledge.KNOWLEDGE_DIR", Path(tmp)), self.assertRaises(ValueError):
+                rag.load_knowledge_documents()
 
     def test_short_queries_skip_retrieval(self):
-        with mock.patch.object(ai, "get_index") as get_index:
-            self.assertEqual(ai.retrieve_context("hi there"), "")
+        with mock.patch("therapybot.rag.knowledge.get_index") as get_index:
+            self.assertEqual(rag.retrieve_context("hi there"), "")
         get_index.assert_not_called()
+
+    def test_markdown_sections_keep_their_heading_path(self):
+        from therapybot.rag.chunking import embedding_text, split_markdown
+
+        text = "Intro line\n\n## Sleep\nWind down.\n### Habits\nSame wake time.\n```\n# not a heading\n```\n## Stress\nBreathe."
+        self.assertEqual(
+            split_markdown(text),
+            [
+                ("Intro line", "/"),
+                ("## Sleep\nWind down.", "/"),
+                ("### Habits\nSame wake time.\n```\n# not a heading\n```", "/Sleep/"),
+                ("## Stress\nBreathe.", "/"),
+            ],
+        )
+        self.assertEqual(embedding_text("Body", {"title": "T", "url": "u"}), "title: T\nurl: u\n\nBody")
+
+
+class ProviderInterfaceTests(TestCase):
+    def test_groq_returns_answer_not_reasoning(self):
+        from therapybot.llm.groq_chat import GroqChatModel
+
+        with mock.patch.dict("os.environ", {"GROQ_API_KEY": "test"}), mock.patch("groq.Groq") as client_cls:
+            client = client_cls.return_value
+            message = mock.MagicMock(content="  Hello, Sam!  ", reasoning="thinking about Sam")
+            client.chat.completions.create.return_value.choices = [mock.MagicMock(message=message)]
+            model = GroqChatModel("openai/gpt-oss-20b", temperature=0, max_tokens=50, timeout=5, max_retries=0)
+            self.assertEqual(model.complete([llm.user("hi")]), "Hello, Sam!")
+        kwargs = client.chat.completions.create.call_args.kwargs
+        self.assertEqual(kwargs["messages"], [{"role": "user", "content": "hi"}])
+        self.assertEqual(kwargs["reasoning_effort"], "low")
 
 
 class APITestCase(TestCase):

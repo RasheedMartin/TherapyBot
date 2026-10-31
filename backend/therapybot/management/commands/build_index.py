@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from therapybot.ai import INDEX_DIR, build_index
+from therapybot.rag import INDEX_DIR, build_index
 
 
 class Command(BaseCommand):

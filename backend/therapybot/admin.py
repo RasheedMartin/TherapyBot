@@ -33,7 +33,7 @@ class KnowledgeArticleAdmin(admin.ModelAdmin):
 
     @admin.action(description="Rebuild the retrieval index (after editing articles)")
     def rebuild_index(self, request, queryset):
-        from therapybot.ai import build_index
+        from therapybot.rag import build_index
 
         build_index()
         self.message_user(request, "Index rebuilt. All server workers pick it up on their next request.", messages.SUCCESS)

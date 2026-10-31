@@ -1,0 +1,89 @@
+"""API views, grouped by feature. urls.py and tests import view names from here."""
+
+from therapybot.views.accounts import (
+    change_password,
+    current_user,
+    delete_account,
+    export_data,
+    forgot_password,
+    google_sign_in,
+    profile,
+    register_user,
+    resend_verification,
+    reset_password,
+    verify_email,
+)
+from therapybot.views.care import (
+    SavedProviderDetail,
+    SavedProviderListCreate,
+    provider_search,
+)
+from therapybot.views.chat import (
+    ConversationDetail,
+    ConversationListCreate,
+    send_message,
+    stream_message,
+    update_conversation_summary,
+    user_context,
+)
+from therapybot.views.meta import (
+    health,
+    public_config,
+    therapy_types,
+)
+from therapybot.views.notes import (
+    SessionNoteDetail,
+    SessionNoteListCreate,
+    discuss_note,
+)
+from therapybot.views.plans import (
+    PlanDetail,
+    PlanListCreate,
+    calendar_feed,
+    calendar_feed_settings,
+    clean_ai_steps,
+    draft_plan,
+    plan_calendar,
+    quick_check_in,
+    step_check_in,
+    unsubscribe_reminders,
+)
+
+__all__ = [
+    "ConversationDetail",
+    "ConversationListCreate",
+    "PlanDetail",
+    "PlanListCreate",
+    "SavedProviderDetail",
+    "SavedProviderListCreate",
+    "SessionNoteDetail",
+    "SessionNoteListCreate",
+    "calendar_feed",
+    "calendar_feed_settings",
+    "change_password",
+    "clean_ai_steps",
+    "current_user",
+    "delete_account",
+    "discuss_note",
+    "draft_plan",
+    "export_data",
+    "forgot_password",
+    "google_sign_in",
+    "health",
+    "plan_calendar",
+    "profile",
+    "provider_search",
+    "public_config",
+    "quick_check_in",
+    "register_user",
+    "resend_verification",
+    "reset_password",
+    "send_message",
+    "step_check_in",
+    "stream_message",
+    "therapy_types",
+    "unsubscribe_reminders",
+    "update_conversation_summary",
+    "user_context",
+    "verify_email",
+]
