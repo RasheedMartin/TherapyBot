@@ -3,6 +3,7 @@ Create a demo practice with a therapist and synthetic clients. Everything here i
 
     python manage.py seed_demo            # local development only (DEBUG=true)
     python manage.py seed_demo --reset    # delete the demo data first
+    python manage.py seed_demo --force --password "$DEMO_PASSWORD"   # a deployed demo: never the default password
 """
 
 from datetime import timedelta
@@ -101,10 +102,15 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--reset", action="store_true", help="Delete existing demo data first")
         parser.add_argument("--force", action="store_true", help="Allow running with DEBUG off (never on real data)")
+        parser.add_argument("--password", help="Password for the demo accounts (required with --force)")
 
-    def handle(self, *args, reset=False, force=False, **options):
+    def handle(self, *args, reset=False, force=False, password=None, **options):
         if not settings.DEBUG and not force:
             raise CommandError("seed_demo only runs with DEBUG=true (pass --force to override on a demo deployment)")
+        if not settings.DEBUG and (not password or password == PASSWORD):
+            # The default password is public (it's in this file); a deployed demo needs its own
+            raise CommandError("Pass --password with a private password when seeding a deployed demo")
+        self.password = password or PASSWORD
         with transaction.atomic():
             if reset:
                 Practice.objects.filter(name=PRACTICE).delete()
@@ -114,13 +120,13 @@ class Command(BaseCommand):
                 raise CommandError("Demo data already exists; use --reset to recreate it")
             self._seed()
         self.stdout.write(self.style.SUCCESS(
-            f"Demo practice created. Therapist: demo_therapist / {PASSWORD}. "
+            f"Demo practice created. Therapist: demo_therapist / {'<your --password>' if password else PASSWORD}. "
             f"Clients: {', '.join(c['username'] for c in CLIENTS)} (same password)."
         ))
 
     def _user(self, username, name, role="client"):
         first, last = name.split(" ", 1)
-        user = User.objects.create_user(username=username, email=f"{username}@example.com", password=PASSWORD,
+        user = User.objects.create_user(username=username, email=f"{username}@example.com", password=self.password,
                                         first_name=first, last_name=last)
         now = timezone.now()
         Profile.objects.create(
