@@ -57,9 +57,11 @@ Also set "in_progress" to true only if harm has already started or is happening 
 pills or are injuring themselves), otherwise false.
 
 Finally, set "next_step" to what the user is asking for, if it matches one of these app features:
-- "find_care": they want to see or find a therapist, counselor, psychiatrist, or other professional
-- "plan": they want a routine, habit, schedule, or plan to stick to
-- "notes": they want help understanding notes or a summary from their therapist or doctor
+- "find_care": they want to see, find, or switch to a therapist, counselor, psychiatrist, or other professional
+- "plan": they want help building or sticking to a routine, habit, schedule, or plan (including "I keep quitting"
+  or "maybe I need a routine")
+- "notes": they want help understanding something their therapist or doctor wrote or gave them: session notes, an
+  after-visit summary, a printout or worksheet, a screening score (e.g. PHQ-9, GAD-7), or clinical terms from them
 - "none": anything else
 
 Reply with JSON only: {"risk": "none" | "elevated" | "imminent", "in_progress": true | false,
@@ -100,7 +102,8 @@ def assess_risk(question: str, history=None, details: dict | None = None) -> str
             step = parsed.get("next_step")
             details["next_step"] = step if step in ("find_care", "plan", "notes") else ""
     except Exception:
-        logger.warning("Risk screening failed; relying on keyword check", exc_info=True)
+        # Error level: while this happens, indirect risk is only caught by keywords
+        logger.error("Risk screening failed; relying on keyword check", exc_info=True)
         return "imminent" if topic else "none"
     if risk not in ("none", "elevated", "imminent"):
         risk = "imminent" if topic else "none"

@@ -28,8 +28,10 @@ def get_chat_model(fast: bool = False) -> ChatModel:
             from therapybot.llm.groq_chat import GroqChatModel
 
             if fast:
+                # The risk screener runs on every message, so ride out brief rate limiting (the SDK waits
+                # for the server's retry-after) rather than silently falling back to keyword-only screening
                 _models[fast] = GroqChatModel(
-                    settings.GROQ_FAST_MODEL, temperature=0, max_tokens=400, timeout=8, max_retries=0
+                    settings.GROQ_FAST_MODEL, temperature=0, max_tokens=400, timeout=8, max_retries=2
                 )
             else:
                 _models[fast] = GroqChatModel(
