@@ -11,7 +11,8 @@ from therapybot.models import ClinicalDocument
 from therapybot.rag import RetrievedChunk
 
 SNIPPET_CHARS = 220
-DOC_TYPE_LABELS = dict(ClinicalDocument.DocType.choices)
+DOC_TYPE_LABELS = {**dict(ClinicalDocument.DocType.choices),
+                   "chat_summary": "Companion chat summary (shared by the client)"}
 MARKER_RE = re.compile(r"\[S(\d+)\]")
 _BRACKETS = str.maketrans({"【": "[", "】": "]", "［": "[", "］": "]", "〔": "[", "〕": "]"})
 # Models use narrow/no-break spaces (e.g. "GAD‑7\u202f9"); some fonts render them with ~no width
@@ -33,13 +34,15 @@ class Source:
 
     def as_dict(self) -> dict:
         text = " ".join(self.chunk.text.split())
+        # Chat summaries have no document to open, so the citation carries all of it
+        limit = len(text) if self.chunk.doc_type == "chat_summary" else SNIPPET_CHARS
         return {
             "label": self.label,
             "document_id": self.chunk.document_id,
             "session_id": self.chunk.session_id,
             "session_date": self.chunk.session_date,
             "doc_type": self.chunk.doc_type,
-            "snippet": text[:SNIPPET_CHARS] + ("…" if len(text) > SNIPPET_CHARS else ""),
+            "snippet": text[:limit] + ("…" if len(text) > limit else ""),
         }
 
 

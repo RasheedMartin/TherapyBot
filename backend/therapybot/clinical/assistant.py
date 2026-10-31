@@ -5,18 +5,39 @@ and citations are validated server-side. Client text is sent to the configured L
 """
 
 import logging
+import re
 
-from therapybot import audit, llm, safety
+from therapybot import audit, between_sessions, llm, safety
 from therapybot.ai.drafting import complete_json
 from therapybot.clinical import prompts
 from therapybot.clinical.citations import label_chunks, render_sources, source_dicts, validate_items, validate_text
 from therapybot.clinical.facts import client_facts, render_facts
-from therapybot.models import Client
+from therapybot.models import CareRelationship, Client
 from therapybot.rag import recent_client_chunks, search_client_record
 
 logger = logging.getLogger(__name__)
 
 NOT_FOUND = "I couldn't find that in this client's record."
+RISK_WARNING = ("The brief describes suicide or self-harm risk as absent or low, but the sources it cites don't "
+                "document a risk assessment. Assess directly.")
+# "no clear plan", "without current intent", "denies SI", "low risk"...
+_DENIAL_RE = re.compile(
+    r"\b(no|not|without|denie[sd]|denying|absence of|low)\b(?:\W+\w+){0,4}?\W+(plan|intent|ideation|risk|SI|HI)\b",
+    re.IGNORECASE,
+)
+
+
+def unsupported_risk_denial(text: str, labels: list[str], sources) -> bool:
+    """
+    A risk statement softened with "no plan / no intent" that its cited sources don't back. Models add
+    these on their own; an unasked question must not read as a denial.
+    """
+    if not (safety.mentions_risk(text) or re.search(r"better off|suicid|\bSI\b", text, re.IGNORECASE)):
+        return False
+    if not _DENIAL_RE.search(text):
+        return False
+    cited = {s.label: s.chunk.text for s in sources}
+    return not any(_DENIAL_RE.search(cited.get(label, "")) for label in labels)
 TREATMENT_QUERIES = [
     "presenting problem, symptoms and concerns",
     "goals the client wants to work on",
@@ -31,10 +52,15 @@ def _user_prompt(facts: dict, sources, request_text: str) -> str:
 
 def session_prep(*, actor, client: Client, request=None) -> dict:
     chunks = recent_client_chunks(actor=actor, client_id=client.pk, documents=3, request=request, purpose="ai.prep")
+    relationship = CareRelationship.objects.filter(
+        client=client, therapist=actor, status=CareRelationship.Status.ACTIVE
+    ).first()
+    # What the client chose to share from the companion since the last session, citable like the record
+    chunks += between_sessions.summary_chunks(client, relationship)
     facts = client_facts(client, actor)
     sources = label_chunks(chunks)
     result = {"facts": facts, "summary": "", "last_session": [], "open_threads": [], "suggested_focus": [],
-              "sources": [], "dropped_claims": 0}
+              "sources": [], "dropped_claims": 0, "warnings": []}
     if sources:
         raw = complete_json(
             [llm.system(prompts.PREP_PROMPT), llm.user(_user_prompt(facts, sources, "Prepare the session brief."))],
@@ -46,6 +72,12 @@ def session_prep(*, actor, client: Client, request=None) -> dict:
             result["dropped_claims"] += dropped
             cited += [label for item in result[key] for label in item["sources"]]
         result["sources"] = source_dicts(list(dict.fromkeys(cited)), sources)
+        statements = [(result["summary"], re.findall(r"\[(S\d+)\]", result["summary"]))] + [
+            (item["text"], item["sources"]) for key in ("last_session", "open_threads", "suggested_focus")
+            for item in result[key]
+        ]
+        if any(unsupported_risk_denial(text, labels, sources) for text, labels in statements):
+            result["warnings"].append(RISK_WARNING)
     audit.record(actor, "ai.prep", request=request, client=client, sources=len(result["sources"]),
                  dropped_claims=result["dropped_claims"])
     return result

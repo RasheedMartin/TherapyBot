@@ -81,6 +81,7 @@ export const PrepPanel = ({ clientId }: { clientId: number }) => {
             ))}
             {facts.open_risk_flags > 0 && <Chip color="warning" label={`${facts.open_risk_flags} open safety flag(s)`} />}
           </Stack>
+          {data.warnings.map((w) => <Alert key={w} severity="warning">{w}</Alert>)}
           {data.summary && <CitedText text={data.summary} sources={data.sources} clientId={clientId} />}
           <CitedList title="Last session" items={data.last_session} sources={data.sources} clientId={clientId} />
           <CitedList title="Open threads" items={data.open_threads} sources={data.sources} clientId={clientId} />

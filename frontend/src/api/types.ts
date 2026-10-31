@@ -31,6 +31,7 @@ export interface Conversation {
   id: number;
   title: string;
   therapy_type: string;
+  shared_with_care_team: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -48,11 +49,13 @@ export interface Message {
 
 export interface ConversationDetail extends Conversation {
   messages: Message[];
+  care_summary: string;
 }
 
 export interface SendMessageResponse {
   conversation: Conversation;
   messages: Message[];
+  care_team_notified?: boolean;
 }
 
 export const THERAPY_TYPES = [
@@ -251,7 +254,7 @@ export interface Citation {
   document_id: number | null;
   session_id: number | null;
   session_date: string | null;
-  doc_type: DocType;
+  doc_type: DocType | "chat_summary";
   snippet: string;
 }
 
@@ -291,6 +294,7 @@ export interface SessionPrep {
   suggested_focus: CitedItem[];
   sources: Citation[];
   dropped_claims: number;
+  warnings: string[];
 }
 
 export interface RecordAnswer {
@@ -369,4 +373,21 @@ export interface InvitePreview {
   invited_email: string;
   always_shared: string;
   defaults: { share_checkins: boolean; share_chat_summaries: boolean; share_raw_chat: boolean };
+}
+
+export interface SharedConversation {
+  id: number;
+  title: string;
+  updated_at: string;
+  message_count: number;
+  flagged: boolean;
+  summary: string | null;
+  messages: { role: "user" | "assistant"; content: string; created_at: string }[] | null;
+}
+
+export interface BetweenSessions {
+  since: string;
+  sharing: { share_checkins: boolean; share_chat_summaries: boolean; share_raw_chat: boolean };
+  conversations: SharedConversation[];
+  chat_flags: number;
 }

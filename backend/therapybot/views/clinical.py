@@ -14,10 +14,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 
-from therapybot import audit
+from therapybot import audit, between_sessions
 from therapybot.clinical import assistant
 from therapybot.models import ClinicalDocument, Plan, Session, TreatmentPlan
-from therapybot.permissions import authorize_client
+from therapybot.permissions import active_relationship, authorize_client
 from therapybot.serializers import (
     ClinicalDocumentSerializer,
     DocumentSummarySerializer,
@@ -176,6 +176,19 @@ def homework(request, pk):
     plan = serializer.save(user=client.user, client=client, assigned_by=request.user)
     audit.record(request.user, "homework.assign", request=request, client=client, obj=plan)
     return Response(PlanSerializer(plan, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes(THERAPIST)
+@throttle_classes([ChatThrottle])
+def between_sessions_view(request, pk):
+    """The client's companion activity since the last session, limited to what they've chosen to share."""
+    client = authorize_client(request.user, pk, "record.between_sessions", request=request)
+    data = between_sessions.between_sessions(client, active_relationship(request.user, client))
+    audit.record(request.user, "chat.shared_view", request=request, client=client,
+                 conversations=len(data["conversations"]),
+                 raw=any(c["messages"] is not None for c in data["conversations"]))
+    return Response(data)
 
 
 # --- AI assistant ------------------------------------------------------------------------------------

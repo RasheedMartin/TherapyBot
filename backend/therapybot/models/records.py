@@ -177,8 +177,8 @@ class Screening(models.Model):
 
 class RiskFlag(models.Model):
     """
-    Something in a client's data a therapist should follow up on: a positive PHQ-9 item 9, or (later)
-    risk detected in the companion chat. This is not live monitoring; clients are told so.
+    Something in a client's data a therapist should follow up on: a positive PHQ-9 item 9, or risk
+    detected in the companion chat. This is not live monitoring; clients are told so.
     """
 
     class Level(models.TextChoices):
@@ -193,6 +193,7 @@ class RiskFlag(models.Model):
     level = models.CharField(max_length=10, choices=Level.choices)
     source_type = models.CharField(max_length=10, choices=SourceType.choices)
     screening = models.ForeignKey(Screening, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    message = models.ForeignKey("Message", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     reason = models.CharField(max_length=200)  # no clinical text beyond a short standard description
     created_at = models.DateTimeField(auto_now_add=True)
     acknowledged_at = models.DateTimeField(null=True, blank=True)

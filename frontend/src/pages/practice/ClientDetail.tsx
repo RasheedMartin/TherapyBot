@@ -37,6 +37,7 @@ import {
 } from "../../api/types";
 import { AskPanel, Panel, PrepPanel } from "../../components/practice/AssistantPanels";
 import { formatDate } from "../../components/practice/format";
+import { BetweenSessionsPanel } from "../../components/practice/BetweenSessionsPanel";
 import { ScreeningsPanel } from "../../components/practice/ScreeningsPanel";
 import { SyntheticDataBanner } from "../../components/practice/SyntheticDataBanner";
 import { TreatmentPlanPanel } from "../../components/practice/TreatmentPlanPanel";
@@ -259,6 +260,7 @@ export const ClientDetail = () => {
           <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "3fr 2fr" }, alignItems: "start" }}>
             <Stack spacing={3}>
               <PrepPanel clientId={id} />
+              <BetweenSessionsPanel clientId={id} hasAccount={c.has_account} />
               <AskPanel clientId={id} />
               <Panel
                 title="Sessions & notes"

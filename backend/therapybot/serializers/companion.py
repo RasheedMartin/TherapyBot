@@ -178,7 +178,7 @@ class MessageSerializer(serializers.ModelSerializer):
 class ConversationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
-        fields = ("id", "title", "therapy_type", "created_at", "updated_at")
+        fields = ("id", "title", "therapy_type", "shared_with_care_team", "created_at", "updated_at")
         read_only_fields = ("created_at", "updated_at")
 
     def validate_therapy_type(self, value):
@@ -191,7 +191,8 @@ class ConversationDetailSerializer(ConversationSerializer):
     messages = MessageSerializer(many=True, read_only=True)
 
     class Meta(ConversationSerializer.Meta):
-        fields = ConversationSerializer.Meta.fields + ("messages",)
+        fields = ConversationSerializer.Meta.fields + ("messages", "care_summary")
+        read_only_fields = ConversationSerializer.Meta.read_only_fields + ("care_summary",)
 
 
 class SendMessageSerializer(serializers.Serializer):

@@ -17,7 +17,7 @@ from rest_framework.decorators import (
 )
 from rest_framework.response import Response
 
-from therapybot import ai
+from therapybot import ai, between_sessions
 from therapybot.models import (
     Conversation,
     Message,
@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 
 
 def user_context(user) -> str:
-    """What the bot should know about the user beyond this conversation: profile, plans, care search."""
-    parts = [get_profile(user).chat_context()]
+    """What the bot should know about the user beyond this conversation: profile, therapy, plans, care search."""
+    parts = [get_profile(user).chat_context(), between_sessions.companion_context(user)]
 
     today = timezone.localdate()
     week_ago = today - timedelta(days=6)
@@ -51,7 +51,8 @@ def user_context(user) -> str:
             else:
                 progress = f"done {sum(week_ago <= d <= today for d in dates)} of the last 7 days"
                 progress += ", done today" if today in dates else ", not yet today"
-            plan_lines.append(f"- {plan.title}: {step.title} ({progress})")
+            origin = " (from their therapist)" if plan.assigned_by_id else ""
+            plan_lines.append(f"- {plan.title}{origin}: {step.title} ({progress})")
     if plan_lines:
         parts.append(
             "\nTheir current plan (check in on it only when it fits naturally; celebrate effort, never scold):\n"
@@ -139,9 +140,12 @@ def _save_exchange(conversation, content, reply, is_crisis, sources=(), risk="no
         if not conversation.title:
             conversation.title = content if len(content) <= 60 else content[:57].rstrip() + "…"
         conversation.save()
+    # Risk is shared with the client's therapists whatever else they've chosen (disclosed at consent)
+    notified = between_sessions.flag_chat_risk(conversation.user, user_msg, risk) if risk != "none" else False
     return {
         "conversation": ConversationSerializer(conversation).data,
         "messages": MessageSerializer([user_msg, bot_msg], many=True).data,
+        "care_team_notified": notified,
     }
 
 

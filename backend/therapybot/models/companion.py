@@ -5,6 +5,8 @@ import datetime
 from django.conf import settings
 from django.db import models
 
+from therapybot.fields import EncryptedTextField
+
 
 class Conversation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="conversations")
@@ -15,6 +17,11 @@ class Conversation(models.Model):
     # Running summary of older messages that no longer fit in the model's history window
     summary = models.TextField(blank=True)
     summarized_count = models.PositiveIntegerField(default=0)
+    # Clients linked with a therapist can keep a conversation out of what's shared (safety flags excepted)
+    shared_with_care_team = models.BooleanField(default=True)
+    # Therapist-facing summary, generated when a therapist with share_chat_summaries looks; the client can read it
+    care_summary = EncryptedTextField(blank=True)
+    care_summary_count = models.PositiveIntegerField(default=0)  # message count the summary covers
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

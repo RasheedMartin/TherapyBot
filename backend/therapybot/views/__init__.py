@@ -15,6 +15,7 @@ from therapybot.views.accounts import (
 )
 from therapybot.views.clinical import (
     add_addendum,
+    between_sessions_view,
     ask,
     create_document,
     create_session,

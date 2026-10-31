@@ -18,6 +18,7 @@ from therapybot.models import (
     CareRelationship,
     Client,
     ClinicalDocument,
+    Conversation,
     Plan,
     Practice,
     PracticeMembership,
@@ -48,6 +49,22 @@ CLIENTS = [
         ],
         "homework": [("Thought record", "daily"), ("Worry time at 6pm", "daily")],
         "screenings": [("gad7", 0, 14), ("gad7", 2, 12), ("gad7", 3, 9)],  # (instrument, session index, total)
+        # A between-session companion conversation the client shares with the therapist (days ago, messages)
+        "chats": [
+            ("Speaking up at standup", 3, [
+                ("user", "I said I'd speak first at Monday standup and I chickened out again."),
+                ("assistant", "That's frustrating, especially after it went better last week. What happened right before?"),
+                ("user", "My heart was pounding and I kept thinking everyone would notice my voice shaking."),
+                ("assistant", "That sounds like the 'everyone will notice' thought you've been working on. "
+                              "Could a thought record help sort out what actually happened?"),
+                ("user", "Maybe. I did one after and rated it 7 out of 10 before, 4 after. I'll try again Wednesday."),
+            ]),
+            ("Can't sleep", 1, [
+                ("user", "Up at 3am again thinking about emails."),
+                ("assistant", "That's a rough hour to be awake with your thoughts. What have you tried tonight?"),
+                ("user", "I got out of bed like my therapist said and read for a bit. Went back to sleep around 4."),
+            ]),
+        ],
     },
     {
         "username": "demo_priya", "name": "Priya Raman", "modality": "dbt",
@@ -159,3 +176,8 @@ class Command(BaseCommand):
                 for days_ago in (1, 2, 4, 6):  # some check-ins over the last week
                     if step.is_due_on(today - timedelta(days=days_ago)):
                         step.check_ins.create(date=today - timedelta(days=days_ago))
+            for title, days_ago, messages in spec.get("chats", []):
+                convo = Conversation.objects.create(user=user, title=title, therapy_type="Anxiety Support")
+                for role, content in messages:
+                    convo.messages.create(role=role, content=content)
+                Conversation.objects.filter(pk=convo.pk).update(updated_at=timezone.now() - timedelta(days=days_ago))

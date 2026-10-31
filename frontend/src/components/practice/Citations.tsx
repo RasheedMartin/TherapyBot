@@ -22,6 +22,7 @@ const DOC_LABELS: Record<string, string> = {
   transcript: "Transcript",
   intake: "Intake",
   client_upload: "Client upload",
+  chat_summary: "Companion chat summary, shared by the client",
   other: "Document",
 };
 
@@ -51,6 +52,14 @@ const SourceDialog = ({ clientId, citation, onClose }: { clientId: number; citat
       </DialogTitle>
       <DialogContent dividers>
         {doc.isLoading && <CircularProgress />}
+        {citation && !citation.document_id && (
+          <>
+            <Typography sx={{ lineHeight: 1.7 }}>{citation.snippet}</Typography>
+            <Typography variant="caption" color="text.secondary" display="block" mt={2}>
+              AI summary of what the client said to the companion between sessions. Not a clinical observation.
+            </Typography>
+          </>
+        )}
         {doc.data && (
           <Typography component="div" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
             {match ? (

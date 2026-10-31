@@ -34,6 +34,10 @@ def record_screening(*, client: Client, instrument_key: str, responses: list, ad
                 reason=f"{instrument.name} item {instrument.risk_item + 1} (thoughts of death or self-harm) "
                        f"answered {responses[instrument.risk_item]} of 3",
             )
+    if flag is not None:
+        from therapybot.between_sessions import notify_therapists
+
+        notify_therapists(flag)
     audit.record(entered_by, "screening.record", request=request, client=client, obj=screening,
                  instrument=instrument.key, source=source, flagged=flag is not None)
     return screening, flag

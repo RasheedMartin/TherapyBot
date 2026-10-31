@@ -2,7 +2,7 @@ import { Alert, AlertTitle, Button, Stack } from "@mui/material";
 import { ChatOutlined, Phone, Sms } from "@mui/icons-material";
 
 /** Persistent, low-friction ways to reach a person right now. Shown while a conversation signals risk. */
-export const CrisisBanner = ({ onDismiss }: { onDismiss: () => void }) => (
+export const CrisisBanner = ({ onDismiss, therapists = [] }: { onDismiss: () => void; therapists?: string[] }) => (
   <Alert
     severity="warning"
     onClose={onDismiss}
@@ -10,6 +10,7 @@ export const CrisisBanner = ({ onDismiss }: { onDismiss: () => void }) => (
   >
     <AlertTitle>You don't have to go through this alone</AlertTitle>
     The 988 Suicide & Crisis Lifeline is free, confidential, and available 24/7. If you're in immediate danger, call 911.
+    {therapists.length > 0 && ` ${therapists.join(" and ")} will see a safety alert, but not right away, so please reach out now.`}
     <Stack direction="row" spacing={1} mt={1.5} flexWrap="wrap" useFlexGap>
       <Button size="small" variant="contained" color="warning" startIcon={<Phone />} href="tel:988">
         Call 988

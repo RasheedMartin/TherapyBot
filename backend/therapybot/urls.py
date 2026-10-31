@@ -51,6 +51,7 @@ urlpatterns = [
     path("practice/clients/<int:pk>/documents/<int:doc_id>/addendum/", views.add_addendum,
          name="record-document-addendum"),
     path("practice/clients/<int:pk>/homework/", views.homework, name="record-homework"),
+    path("practice/clients/<int:pk>/between-sessions/", views.between_sessions_view, name="record-between-sessions"),
     path("practice/clients/<int:pk>/prep/", views.prep, name="record-prep"),
     path("practice/clients/<int:pk>/ask/", views.ask, name="record-ask"),
     path("practice/clients/<int:pk>/draft-note/", views.draft_note, name="record-draft-note"),
