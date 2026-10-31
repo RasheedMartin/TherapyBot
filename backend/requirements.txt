@@ -15,7 +15,10 @@ groq>=1.0,<2.0
 
 # Local CPU embeddings via ONNX (no PyTorch, no API key)
 fastembed>=0.7.0,<1.0
-numpy>=1.26
+
+# Vector search in Postgres, and encryption of clinical text at rest
+pgvector>=0.4,<1.0
+cryptography>=43
 
 # Utilities
 certifi

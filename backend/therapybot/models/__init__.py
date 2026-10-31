@@ -4,12 +4,15 @@ from therapybot.models.accounts import Profile
 from therapybot.models.companion import Conversation, Message, Plan, PlanStep, SavedProvider, StepCheckIn
 from therapybot.models.knowledge import KnowledgeArticle
 from therapybot.models.practice import AuditEvent, CareRelationship, Client, Practice, PracticeMembership
-from therapybot.models.records import SessionNote
+from therapybot.models.rag import Chunk
+from therapybot.models.records import ClinicalDocument, Session
 
 __all__ = [
     "AuditEvent",
     "CareRelationship",
+    "Chunk",
     "Client",
+    "ClinicalDocument",
     "Conversation",
     "KnowledgeArticle",
     "Message",
@@ -19,6 +22,6 @@ __all__ = [
     "PracticeMembership",
     "Profile",
     "SavedProvider",
-    "SessionNote",
+    "Session",
     "StepCheckIn",
 ]

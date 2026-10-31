@@ -9,7 +9,7 @@ from django.db import models
 class Conversation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="conversations")
     # A conversation started from session notes keeps them in context
-    note = models.ForeignKey("SessionNote", on_delete=models.SET_NULL, null=True, blank=True, related_name="conversations")
+    note = models.ForeignKey("ClinicalDocument", on_delete=models.SET_NULL, null=True, blank=True, related_name="conversations")
     title = models.CharField(max_length=120, blank=True)
     therapy_type = models.CharField(max_length=80, default="General Therapy")
     # Running summary of older messages that no longer fit in the model's history window

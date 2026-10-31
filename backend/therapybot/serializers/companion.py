@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
-from therapybot.models import Conversation, Message, Plan, PlanStep, Profile, SavedProvider, SessionNote
+from therapybot.models import ClinicalDocument, Conversation, Message, Plan, PlanStep, Profile, SavedProvider
 from therapybot.verification import is_email_verified
 
 THERAPY_TYPES = [
@@ -289,12 +289,17 @@ class PlanSerializer(serializers.ModelSerializer):
 
 class SessionNoteListSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SessionNote
+        model = ClinicalDocument
         fields = ("id", "title", "session_date", "created_at")
 
 
 class SessionNoteSerializer(serializers.ModelSerializer):
+    """A client's own uploaded notes. The API keeps its original field names."""
+
+    original_text = serializers.CharField(source="text", read_only=True)
+    explanation = serializers.JSONField(read_only=True)  # stored encrypted, so declare the type explicitly
+
     class Meta:
-        model = SessionNote
+        model = ClinicalDocument
         fields = ("id", "title", "session_date", "original_text", "explanation", "created_at")
-        read_only_fields = ("original_text", "explanation", "created_at")
+        read_only_fields = ("created_at",)

@@ -111,7 +111,8 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS + [f"https://{h}" for h in ALLOWED_H
 
 DATABASES = {
     "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        # Postgres is required (vector search uses pgvector); locally: brew install postgresql@17 pgvector
+        default="postgres:///therapybot",
         conn_max_age=600,
         conn_health_checks=True,
     )
@@ -154,6 +155,13 @@ SIMPLE_JWT = {
 # False until hosting, database and AI providers are covered by BAAs. The app shows a "synthetic data
 # only" notice everywhere clinical records can be entered.
 PHI_ALLOWED = env_bool("PHI_ALLOWED", False)
+
+# Keys for encrypting clinical text at rest (Fernet, comma-separated, newest first; old keys keep
+# decrypting during rotation). Generate one with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEYS = env_list("FIELD_ENCRYPTION_KEYS")
+if not FIELD_ENCRYPTION_KEYS and PHI_ALLOWED and not DEBUG:
+    raise ImproperlyConfigured("FIELD_ENCRYPTION_KEYS must be set before real clinical data is allowed")
 
 # --- Sign in with Google (optional; the button is hidden when unset) ---------
 

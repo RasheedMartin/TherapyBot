@@ -1,16 +1,16 @@
 from django.core.management.base import BaseCommand
 
-from therapybot.rag import INDEX_DIR, build_index
+from therapybot.rag import build_index
 
 
 class Command(BaseCommand):
-    help = "Rebuild the retrieval index in storage/ from knowledge/*.md and active KnowledgeArticles."
+    help = "Sync the reference corpus (knowledge/*.md and active KnowledgeArticles) into the vector store."
 
     def add_arguments(self, parser):
         parser.add_argument("--if-stale", action="store_true", help="Only rebuild when the content has changed")
 
     def handle(self, *args, if_stale=False, **options):
-        if build_index(if_stale=if_stale) is None:
-            self.stdout.write("Index already up to date")
+        if build_index(if_stale=if_stale):
+            self.stdout.write(self.style.SUCCESS("Reference corpus synced"))
         else:
-            self.stdout.write(self.style.SUCCESS(f"Index rebuilt at {INDEX_DIR}"))
+            self.stdout.write("Reference corpus already up to date")

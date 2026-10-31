@@ -22,4 +22,4 @@ class Command(BaseCommand):
             self.stdout.write(f"  {article.title}  ({len(article.body)} chars)  {article.url}")
         self.stdout.write(f"Imported {len(articles)} article(s)")
         build_index()
-        self.stdout.write(self.style.SUCCESS("Index rebuilt"))
+        self.stdout.write(self.style.SUCCESS("Reference corpus synced"))

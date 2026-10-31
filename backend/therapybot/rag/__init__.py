@@ -1,12 +1,15 @@
-"""Retrieval over reference knowledge (and, later, per-client clinical records)."""
+"""Retrieval: reference knowledge for everyone, and per-client clinical records behind access checks."""
 
-from therapybot.rag.knowledge import (
-    INDEX_DIR,
-    KNOWLEDGE_DIR,
-    build_index,
-    get_index,
-    load_knowledge_documents,
-    retrieve_context,
-)
+from therapybot.rag.knowledge import KNOWLEDGE_DIR, build_index, load_knowledge_documents, retrieve_context
+from therapybot.rag.retrieval import IsolationError, RetrievedChunk, search_client_record, search_reference
 
-__all__ = ["INDEX_DIR", "KNOWLEDGE_DIR", "build_index", "get_index", "load_knowledge_documents", "retrieve_context"]
+__all__ = [
+    "KNOWLEDGE_DIR",
+    "IsolationError",
+    "RetrievedChunk",
+    "build_index",
+    "load_knowledge_documents",
+    "retrieve_context",
+    "search_client_record",
+    "search_reference",
+]

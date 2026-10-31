@@ -50,6 +50,7 @@ TherapyBot/
 ### Prerequisites
 
 - Python 3.11+
+- PostgreSQL 17 with the pgvector extension (vector search runs in the database)
 - Node.js 20+
 - [Groq API key](https://console.groq.com) (free)
 
@@ -59,6 +60,7 @@ TherapyBot/
 cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
+brew install postgresql@17 pgvector && brew services start postgresql@17 && createdb therapybot
 cp .env.example .env            # then fill in GROQ_API_KEY and SECRET_KEY
 python manage.py migrate
 python manage.py runserver      # http://localhost:8000

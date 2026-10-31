@@ -26,7 +26,7 @@ from therapybot.models import (
     Plan,
     Profile,
     SavedProvider,
-    SessionNote,
+    ClinicalDocument,
 )
 from therapybot.serializers import (
     ChangePasswordSerializer,
@@ -117,7 +117,7 @@ def export_data(request):
         ).data,
         "plans": PlanSerializer(Plan.objects.filter(user=user).prefetch_related("steps__check_ins"), many=True).data,
         "saved_providers": SavedProviderSerializer(SavedProvider.objects.filter(user=user), many=True).data,
-        "session_notes": SessionNoteSerializer(SessionNote.objects.filter(user=user), many=True).data,
+        "session_notes": SessionNoteSerializer(ClinicalDocument.objects.filter(owner=user), many=True).data,
     }
     response = Response(payload)
     response["Content-Disposition"] = 'attachment; filename="therapybot-data.json"'

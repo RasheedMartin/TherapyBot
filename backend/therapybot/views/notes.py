@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from therapybot import ai
 from therapybot.models import (
     Conversation,
-    SessionNote,
+    ClinicalDocument,
 )
 from therapybot.serializers import (
     ConversationSerializer,
@@ -51,7 +51,7 @@ class SessionNoteListCreate(generics.ListCreateAPIView):
     permission_classes = VERIFIED
 
     def get_queryset(self):
-        return SessionNote.objects.filter(user=self.request.user)
+        return ClinicalDocument.objects.filter(owner=self.request.user, doc_type=ClinicalDocument.DocType.CLIENT_UPLOAD)
 
     def get_serializer_class(self):
         return SessionNoteListSerializer if self.request.method == "GET" else SessionNoteSerializer
@@ -93,7 +93,10 @@ class SessionNoteListCreate(generics.ListCreateAPIView):
             "session_date": request.data.get("session_date") or None,
         })
         serializer.is_valid(raise_exception=True)
-        note = serializer.save(user=request.user, original_text=text, explanation=explanation)
+        note = serializer.save(
+            owner=request.user, author=request.user, text=text, explanation=explanation,
+            doc_type=ClinicalDocument.DocType.CLIENT_UPLOAD,
+        )
         return Response(SessionNoteSerializer(note).data, status=status.HTTP_201_CREATED)
 
 
@@ -102,14 +105,16 @@ class SessionNoteDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = VERIFIED
 
     def get_queryset(self):
-        return SessionNote.objects.filter(user=self.request.user)
+        return ClinicalDocument.objects.filter(owner=self.request.user, doc_type=ClinicalDocument.DocType.CLIENT_UPLOAD)
 
 
 @api_view(["POST"])
 @permission_classes(VERIFIED)
 def discuss_note(request, pk):
     """Start a conversation that has these notes in context."""
-    note = get_object_or_404(SessionNote, pk=pk, user=request.user)
+    note = get_object_or_404(
+        ClinicalDocument, pk=pk, owner=request.user, doc_type=ClinicalDocument.DocType.CLIENT_UPLOAD
+    )
     conversation = Conversation.objects.create(
         user=request.user, note=note, title=f"About: {note.title}"[:120], therapy_type="General Therapy"
     )

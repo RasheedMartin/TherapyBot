@@ -1,5 +1,9 @@
 """Shared test fixtures. All data here is synthetic."""
 
+import hashlib
+import math
+import re
+
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import TestCase
@@ -9,6 +13,27 @@ from rest_framework.test import APIClient
 from therapybot.models import CareRelationship, Client, Practice, PracticeMembership, Profile
 
 STRONG_PASSWORD = "calm-River-42-lantern"
+
+
+class FakeEmbedder:
+    """Deterministic stand-in for the real model: hashed bag of words, unit length, 384 dimensions."""
+
+    model_name = "fake-bow-384"
+    dims = 384
+
+    def _vector(self, text: str) -> list[float]:
+        vector = [0.0] * self.dims
+        for word in re.findall(r"[a-z0-9]+", text.lower()):
+            vector[int(hashlib.md5(word.encode()).hexdigest(), 16) % self.dims] += 1.0
+        vector[0] += 0.01  # never all-zero (cosine distance would be undefined)
+        norm = math.sqrt(sum(v * v for v in vector))
+        return [v / norm for v in vector]
+
+    def embed_documents(self, texts):
+        return [self._vector(t) for t in texts]
+
+    def embed_query(self, text):
+        return self._vector(text)
 CONSENT = {"confirm_age": True, "accept_terms": True}
 
 

@@ -35,12 +35,15 @@ def active_relationship(user, client: Client) -> CareRelationship | None:
 def authorize_client(user, client_id, purpose: str, *, request=None, allow_invited: bool = False) -> Client:
     """
     Return the client if `user` may access their record for `purpose`, else raise Http404 (so callers
-    can't probe which clients exist). Allowed: a verified therapist with an active relationship, or
-    (with allow_invited) the therapist who sent a pending invite. Every attempt is audited.
+    can't probe which clients exist). Allowed: the client themself (their own record), a verified therapist
+    with an active relationship, or (with allow_invited) the therapist who sent a pending invite. Every
+    attempt is audited.
     """
     client = Client.objects.select_related("practice").filter(pk=client_id).first()
     allowed = False
-    if client is not None and is_verified_therapist(user):
+    if client is not None and client.user_id is not None and client.user_id == getattr(user, "pk", None):
+        allowed = True
+    elif client is not None and is_verified_therapist(user):
         statuses = [CareRelationship.Status.ACTIVE] + ([CareRelationship.Status.INVITED] if allow_invited else [])
         allowed = CareRelationship.objects.filter(client=client, therapist=user, status__in=statuses).exists()
     audit.record(user, purpose, request=request, client=client, denied=not allowed, client_id=str(client_id))

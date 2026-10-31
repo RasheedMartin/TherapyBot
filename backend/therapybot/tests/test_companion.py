@@ -10,7 +10,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from therapybot import ai, llm, rag, safety
-from therapybot.models import Conversation, Message, Plan, PlanStep, SavedProvider, SessionNote
+from therapybot.models import ClinicalDocument, Conversation, Message, Plan, PlanStep, SavedProvider
 from therapybot.verification import email_verification_token
 
 from therapybot.tests.helpers import CONSENT, STRONG_PASSWORD, APITestCase
@@ -108,9 +108,9 @@ class KnowledgeBaseTests(TestCase):
                 rag.load_knowledge_documents()
 
     def test_short_queries_skip_retrieval(self):
-        with mock.patch("therapybot.rag.knowledge.get_index") as get_index:
+        with mock.patch("therapybot.rag.retrieval.search_reference") as search:
             self.assertEqual(rag.retrieve_context("hi there"), "")
-        get_index.assert_not_called()
+        search.assert_not_called()
 
     def test_markdown_sections_keep_their_heading_path(self):
         from therapybot.rag.chunking import embedding_text, split_markdown
@@ -855,7 +855,7 @@ class SessionNoteTests(APITestCase):
         self.assertIn("Fill in a thought record", context)
 
     def test_other_users_notes_hidden(self):
-        note = SessionNote.objects.create(user=self.make_user("eve", "eve@example.com"), title="x", original_text="y")
+        note = ClinicalDocument.objects.create(owner=self.make_user("eve", "eve@example.com"), title="x", text="y")
         self.assertEqual(self.client.get(f"/api/notes/{note.pk}/").status_code, 404)
         self.assertEqual(self.client.post(f"/api/notes/{note.pk}/discuss/").status_code, 404)
 
