@@ -1,17 +1,11 @@
 import { useState } from "react";
-import {
-  Box,
-  Paper,
-  Stack,
-  TextField,
-  Button,
-  Typography,
-  Link,
-} from "@mui/material";
-import { useNavigate } from "@tanstack/react-router";
-import api from "../api/client";
+import { Alert, Box, Button, Checkbox, FormControlLabel, FormHelperText, Stack, TextField } from "@mui/material";
 import { useMutation } from "@tanstack/react-query";
-import type { AxiosResponse } from "axios";
+import api, { getErrorMessage, getFieldErrors } from "../api/client";
+import { useAuth } from "../context/AuthContext";
+import { AuthLayout } from "./AuthLayout";
+import { GoogleSignIn } from "./GoogleSignIn";
+import { RouterLink } from "./RouterLink";
 
 interface RegisterFormData {
   username: string;
@@ -21,142 +15,126 @@ interface RegisterFormData {
 }
 
 export const RegisterPage = () => {
-  const navigate = useNavigate();
-
+  const { login } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+  const [mismatch, setMismatch] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
-  const registerMutation = useMutation<
-    AxiosResponse<any>,
-    Error,
-    Omit<RegisterFormData, "confirmPassword">
-  >({
-    mutationFn: (data) => api.post("register_user/", data),
-    onSuccess: () => {
-      navigate({ to: "/login" });
+  // Sign the new user straight in; RequireGuest then redirects to the chat
+  const registerMutation = useMutation({
+    mutationFn: async ({ username, email, password }: Omit<RegisterFormData, "confirmPassword">) => {
+      await api.post("register/", { username, email, password, confirm_age: true, accept_terms: true });
+      await login(username, password, true);
     },
   });
+
+  const fieldErrors = getFieldErrors(registerMutation.error);
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "password" || name === "confirmPassword") setMismatch(false);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setMismatch(true);
       return;
     }
     registerMutation.mutate({
-      username: formData.username,
-      email: formData.email,
+      username: formData.username.trim(),
+      email: formData.email.trim(),
       password: formData.password,
     });
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#f5f5f5",
-        p: 2,
-      }}
+    <AuthLayout
+      title="Create your account"
+      subtitle="Your conversations are saved privately to your account."
+      footer={
+        <>
+          Already have an account? <RouterLink to="/login">Sign in</RouterLink>
+        </>
+      }
     >
-      <Paper
-        elevation={6}
-        sx={{ p: 5, borderRadius: 3, width: "100%", maxWidth: 400 }}
-      >
-        <Typography variant="h4" component="h1" gutterBottom textAlign="center">
-          Register
-        </Typography>
-        <Typography
-          variant="body2"
-          color="textSecondary"
-          gutterBottom
-          textAlign="center"
-        >
-          Create a new account to start using TherapyBot
-        </Typography>
-
-        <Box component="form" onSubmit={handleSubmit}>
-          <Stack spacing={3} mt={2}>
-            <TextField
-              name="username"
-              label="Username"
-              variant="outlined"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              fullWidth
+      <Box component="form" onSubmit={handleSubmit}>
+        <Stack spacing={2.5}>
+          {registerMutation.isError && !hasFieldErrors && (
+            <Alert severity="error">{getErrorMessage(registerMutation.error)}</Alert>
+          )}
+          <TextField
+            name="username"
+            label="Username"
+            autoComplete="username"
+            autoFocus
+            value={formData.username}
+            onChange={handleChange}
+            error={!!fieldErrors.username}
+            helperText={fieldErrors.username}
+            required
+          />
+          <TextField
+            name="email"
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={formData.email}
+            onChange={handleChange}
+            error={!!fieldErrors.email}
+            helperText={fieldErrors.email ?? "Used only for password resets."}
+            required
+          />
+          <TextField
+            name="password"
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            value={formData.password}
+            onChange={handleChange}
+            error={!!fieldErrors.password}
+            helperText={fieldErrors.password ?? "At least 8 characters, not too common."}
+            required
+          />
+          <TextField
+            name="confirmPassword"
+            label="Confirm password"
+            type="password"
+            autoComplete="new-password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            error={mismatch}
+            helperText={mismatch ? "Passwords don't match." : undefined}
+            required
+          />
+          <Box>
+            <FormControlLabel
+              control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} required />}
+              label={
+                <>
+                  I'm 18 or older and agree to the <RouterLink to="/terms">Terms</RouterLink> and{" "}
+                  <RouterLink to="/privacy">Privacy Policy</RouterLink>.
+                </>
+              }
+              slotProps={{ typography: { variant: "body2" } }}
             />
-            <TextField
-              name="email"
-              label="Email"
-              variant="outlined"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              fullWidth
-            />
-            <TextField
-              name="password"
-              label="Password"
-              type="password"
-              variant="outlined"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              fullWidth
-            />
-            <TextField
-              name="confirmPassword"
-              label="Confirm Password"
-              type="password"
-              variant="outlined"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              fullWidth
-            />
-
-            {registerMutation.isError && (
-              <Typography variant="body2" color="error" textAlign="center">
-                {registerMutation.error.message}
-              </Typography>
+            {(fieldErrors.confirm_age || fieldErrors.accept_terms) && (
+              <FormHelperText error>{fieldErrors.confirm_age ?? fieldErrors.accept_terms}</FormHelperText>
             )}
-
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ py: 1.5 }}
-              disabled={registerMutation.isPending}
-            >
-              {registerMutation.isPending ? "Registering..." : "Register"}
-            </Button>
-
-            <Typography variant="body2" textAlign="center">
-              Already have an account?{" "}
-              <Link
-                component="button"
-                variant="body2"
-                onClick={() => navigate({ to: "/login" })}
-              >
-                Back to login
-              </Link>
-            </Typography>
-          </Stack>
-        </Box>
-      </Paper>
-    </Box>
+          </Box>
+          <Button type="submit" variant="contained" size="large" disabled={registerMutation.isPending || !agreed}>
+            {registerMutation.isPending ? "Creating account…" : "Create account"}
+          </Button>
+        </Stack>
+      </Box>
+      <GoogleSignIn />
+    </AuthLayout>
   );
 };

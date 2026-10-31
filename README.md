@@ -9,210 +9,170 @@ A full-stack AI-powered mental health support application that provides evidence
 
 ## 🌟 Features
 
-- **AI-Powered Therapy Conversations**: Leverages Groq (Llama 3.3 70B) and LlamaIndex for context-aware, evidence-based responses
+- **AI-Powered Therapy Conversations**: Leverages Groq (gpt-oss-120b) and LlamaIndex for context-aware, evidence-based responses
 - **Multiple Therapy Modalities**: Supports various therapy types including CBT, DBT, Family Therapy, and Teen Counseling
 - **Crisis Detection**: Automatically detects crisis messages and directs users to appropriate resources
 - **Knowledge Base Integration**: Built on curated mental health resources from trusted sources
-- **Modern React Frontend**: Clean, responsive Material-UI interface
+- **Persistent Conversations**: Multi-turn chats with history, saved per user
+- **Modern React Frontend**: Responsive Material UI chat interface with light and dark mode
 - **Django REST API**: Robust backend with RESTful endpoints and JWT authentication
-- **Vector Search**: Semantic search through therapy documents using remote HuggingFace embeddings
+- **Vector Search**: Semantic search over a curated, clinician-reviewable knowledge base using local embeddings
 
 ## 🏗️ Architecture
 
 ```
 TherapyBot/
 ├── backend/
-│   ├── djangoProject/        # Django project config
-│   │   ├── settings.py       # Django configuration
-│   │   ├── urls.py           # URL routing
-│   │   └── wsgi.py           # WSGI entrypoint
-│   ├── therapybot/           # Django app
-│   │   ├── views.py          # API endpoints
-│   │   └── urls.py           # App URL routing
-│   ├── testingAI.py          # LlamaIndex + Groq integration
-│   ├── storage/              # Vector index storage
-│   └── manage.py
-├── frontend/
-│   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── api/              # API client
-│   │   └── App.tsx           # Main app
-│   └── package.json
-├── requirements.txt
-└── Dockerfile
+│   ├── djangoProject/          # Django settings, URLs, WSGI
+│   ├── therapybot/
+│   │   ├── ai.py               # LlamaIndex retrieval + Groq chat, crisis detection
+│   │   ├── models.py           # Conversation / Message
+│   │   ├── views.py            # REST API
+│   │   ├── tests.py            # API + safety tests (AI mocked)
+│   │   └── management/commands/build_index.py
+│   ├── knowledge/              # Markdown reference articles (source for retrieval)
+│   ├── storage/                # Persisted vector index (shipped in the Docker image)
+│   ├── Dockerfile
+│   └── .env.example
+└── frontend/
+    ├── src/
+    │   ├── pages/              # Home, Chat, NotFound
+    │   ├── components/         # Auth pages, Navbar, chat/ (sidebar, bubbles, composer)
+    │   ├── context/            # AuthContext (tokens + current user)
+    │   ├── api/                # Axios client with token refresh, shared types
+    │   └── theme.ts            # MUI theme (light + dark)
+    ├── vercel.json
+    └── .env.example
 ```
 
-## 🚀 Getting Started
+## 🚀 Local Development
 
 ### Prerequisites
 
 - Python 3.11+
-- Node.js & npm (for React frontend)
-- [Groq API Key](https://console.groq.com) (free)
-- [HuggingFace API Key](https://huggingface.co/settings/tokens) (free, Read access only)
+- Node.js 20+
+- [Groq API key](https://console.groq.com) (free)
 
-### Backend Setup
+### Backend
 
-1. **Clone the repository**
+```bash
+cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env            # then fill in GROQ_API_KEY and SECRET_KEY
+python manage.py migrate
+python manage.py runserver      # http://localhost:8000
+```
 
-   ```bash
-   git clone https://github.com/RasheedMartin/TherapyBot.git
-   cd TherapyBot
-   ```
+Run the tests with `python manage.py test`. To measure reply quality and safety against real models after
+changing prompts or models, run `python manage.py run_evals` (see `backend/evals/README.md`).
 
-2. **Create and activate virtual environment**
+The bot's reference material is MedlinePlus articles (imported with `python manage.py import_articles`,
+editable in the admin) plus the skill guides in `backend/knowledge/` (each needs clinical review before production). After editing them, rebuild the committed
+vector index with `python manage.py build_index`. Embeddings run locally (fastembed, `bge-small-en-v1.5`),
+so no embedding API key is needed; the model (~70 MB) downloads on first use.
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+### Frontend
 
-3. **Install dependencies**
+```bash
+cd frontend
+npm install
+npm run dev                     # http://localhost:5174
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up environment variables** — create a `.env` file in the backend directory:
-
-   ```
-   GROQ_API_KEY=your-groq-api-key
-   HF_API_KEY=your-huggingface-api-key
-   SECRET_KEY=your-django-secret-key
-   DEBUG=True
-   ```
-
-5. **Run migrations**
-
-   ```bash
-   cd backend
-   python manage.py migrate
-   ```
-
-6. **Build the knowledge base (first time only)**
-
-   ```bash
-   python testingAI.py
-   # Type 'rebuild' to create the vector index
-   ```
-
-7. **Run the Django server**
-
-   ```bash
-   python manage.py runserver
-   ```
-
-### Frontend Setup
-
-1. **Navigate to frontend directory**
-
-   ```bash
-   cd frontend
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Start the development server**
-
-   ```bash
-   npm run dev
-   ```
-
-4. **Open your browser**
-   ```
-   http://localhost:5173
-   ```
+In development, `/api` requests are proxied to `localhost:8000`, so no frontend env vars are needed.
+If port 8000 is taken, run Django on another port (`python manage.py runserver 8001`) and create
+`frontend/.env.local` containing `API_PROXY_TARGET=http://localhost:8001`.
 
 ## ☁️ Deployment
 
-### Backend — Railway
+### Backend — Railway (Docker)
 
-The backend is deployed on [Railway](https://railway.app) using Docker.
+Set the service root to `backend/`. The container runs migrations, then serves with gunicorn on `$PORT`.
+Use `/api/health/` as the health-check path.
 
-**Required environment variables in Railway:**
+| Variable                                                                     | Required | Description                                                           |
+| ---------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------- |
+| `SECRET_KEY`                                                                 | ✅       | Long random string                                                    |
+| `GROQ_API_KEY`                                                               | ✅       | Groq API key                                                          |
+| `FRONTEND_URL`                                                               | ✅       | Vercel URL, e.g. `https://therapybot.vercel.app` (CORS + reset links) |
+| `DATABASE_URL`                                                               | ✅       | Injected by the Railway Postgres plugin                               |
+| `ALLOWED_HOSTS`                                                              |          | Extra hostnames; the Railway domain is added automatically            |
+| `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` |          | SMTP for password-reset emails (printed to logs if unset)             |
+| `GOOGLE_CLIENT_ID`    |          | Enables "Continue with Google" (Web OAuth client ID) |
+| `GROQ_FAST_MODEL`     |          | Model for risk screening, next-step detection and summaries (default `openai/gpt-oss-20b`) |
+| `THROTTLE_CHAT`                                                              |          | Per-user chat rate limit (default `20/min`)                           |
+| `WEB_CONCURRENCY`                                                            |          | Gunicorn workers (default 2)                                          |
 
-| Variable        | Description                                       |
-| --------------- | ------------------------------------------------- |
-| `SECRET_KEY`    | Django secret key                                 |
-| `GROQ_API_KEY`  | Groq API key                                      |
-| `HF_API_KEY`    | HuggingFace API key (Read access)                 |
-| `ALLOWED_HOSTS` | Your Railway domain e.g. `yourapp.up.railway.app` |
-| `FRONTEND_URL`  | Your Vercel frontend URL                          |
-| `DATABASE_URL`  | Auto-injected by Railway Postgres plugin          |
+Create an admin user with `railway run python manage.py createsuperuser`; the admin lives at `/admin/`.
 
-Railway automatically runs migrations and starts gunicorn on deploy via the Dockerfile CMD.
+> **Capacity:** Groq's free tier allows about 8,000 tokens per minute per model, which is roughly 3 chat
+> replies per minute across *all* users. Upgrade to Groq's Developer tier before launch.
+
+**One-time setup and scheduled jobs on Railway:**
+
+| Command | When | What it does |
+| ------- | ---- | ------------ |
+| `python manage.py import_articles` | Once after first deploy, then weekly (cron `0 6 * * 1`) | Imports MedlinePlus mental-health articles into the database and rebuilds the retrieval index |
+| `python manage.py send_reminders` | Every 15 minutes (cron `*/15 * * * *`) | Sends daily plan reminder emails that are due in each user's time zone |
+
+Create each as a Railway cron service using the same Docker image and environment variables. The web service
+rebuilds the retrieval index on start only when its content has changed (`build_index --if-stale`).
+Reminder emails need SMTP configured (`EMAIL_HOST`, ...) and `API_BASE_URL` set if the API isn't on the Railway domain.
 
 ### Frontend — Vercel
 
-The frontend is deployed on [Vercel](https://vercel.com). Connect your GitHub repo and Vercel handles the rest. Set your backend Railway URL as an environment variable in Vercel for API calls.
+Set the project root to `frontend/` and add `VITE_API_URL` = your Railway backend URL (no trailing slash).
 
-## 💡 Usage
+## 📊 API
 
-1. Select a therapy type from the dropdown (e.g., Family Therapy, CBT)
-2. Enter your question or concern in the text area
-3. Click "Submit" to get an AI-powered response
-4. The system retrieves relevant information from the knowledge base and generates a contextual response
+All endpoints are under `/api/`. Except where noted, they require `Authorization: Bearer <access token>`.
 
-## 🔧 Configuration
-
-### Adding More Knowledge Sources
-
-Edit the URLs in `build_index_local()` in `testingAI.py`:
-
-```python
-documents = loader.load_data(
-    urls=[
-        "https://childmind.org/article/helping-resistant-teens-into-treatment/",
-        "https://childmind.org/article/anxiety-disorders-in-children/",
-        # Add your URLs here
-    ]
-)
-```
+| Method           | Path                           | Description                                      |
+| ---------------- | ------------------------------ | ------------------------------------------------ |
+| POST             | `token/` _(public)_            | Log in → `{access, refresh}`                     |
+| POST             | `token/refresh/` _(public)_    | Rotate tokens                                    |
+| POST             | `token/logout/` _(public)_     | Revoke a refresh token                           |
+| POST             | `register/` _(public)_         | Create an account                                |
+| POST             | `forgot-password/` _(public)_  | Email a reset link                               |
+| POST             | `reset-password/` _(public)_   | `{uid, token, new_password}`                     |
+| GET              | `health/` _(public)_           | Liveness + database check                        |
+| GET              | `current_user/`                | Signed-in user                                   |
+| GET/PATCH        | `profile/`                     | Profile and care preferences                     |
+| POST             | `account/password/`            | Change password                                  |
+| GET              | `account/export/`              | Download all of the user's data (JSON)           |
+| POST             | `account/delete/`              | `{password}`; permanently deletes the account    |
+| GET/POST         | `conversations/`               | List / create (`{therapy_type}`)                 |
+| GET/PATCH/DELETE | `conversations/<id>/`          | Conversation with messages / rename / delete     |
+| POST             | `conversations/<id>/messages/` | `{content}` → saves the message and the AI reply |
+| POST             | `conversations/<id>/messages/stream/` | Same, streamed as newline-delimited JSON  |
+| GET              | `config/` _(public)_           | Public settings (Google client ID)               |
+| POST             | `auth/google/` _(public)_      | Google ID token → JWTs (new users send consent) |
+| POST             | `verify-email/` _(public)_     | `{uid, token}` from the verification email      |
+| POST             | `verify-email/resend/`         | Send a new verification link                     |
+| GET              | `providers/?zip=&types=`       | Licensed providers near a ZIP (NPI Registry)     |
+| GET/POST         | `saved-providers/`             | Shortlist                                        |
+| PATCH/DELETE     | `saved-providers/<id>/`        | Outreach status / notes / remove                 |
+| GET/POST         | `plans/`                       | Plans with steps                                 |
+| POST             | `plans/draft/`                 | `{conversation}` → AI-drafted plan (not saved)   |
+| GET/PUT/PATCH/DELETE | `plans/<id>/`              | Plan detail / edit / archive / delete            |
+| GET              | `plans/<id>/calendar.ics`      | One-off calendar download                        |
+| POST/DELETE      | `plan-steps/<id>/check-in/`    | Mark a step done / not done for `{date}`         |
+| GET/POST/PATCH/DELETE | `account/calendar-feed/`  | Manage the private calendar subscription link   |
+| GET              | `calendar/<token>.ics` _(public)_ | Live calendar feed (token is the credential)  |
+| GET/POST         | `quick-check-in/` _(public)_   | Preview / confirm a check-in from a reminder email link |
+| POST             | `reminders/unsubscribe/` _(public)_ | One-click unsubscribe (RFC 8058)              |
+| GET/POST         | `notes/`                       | List / add session notes (`text` or `file` upload) → explanation |
+| GET/PATCH/DELETE | `notes/<id>/`                  | Note detail / rename / delete                   |
+| POST             | `notes/<id>/discuss/`          | Start a conversation with the notes in context  |
 
 ## 🛠️ Tech Stack
 
-**Frontend:**
+**Frontend:** React 19, TypeScript, Material UI 7, TanStack Router & Query, Axios, react-markdown, Vite
 
-- React 18
-- Material-UI (MUI)
-- TanStack Query (React Query)
-- TypeScript
-- Axios
+**Backend:** Django 5.2, Django REST Framework, SimpleJWT, LlamaIndex, Groq (gpt-oss-120b), fastembed local embeddings (bge-small-en-v1.5), WhiteNoise, gunicorn
 
-**Backend:**
-
-- Django 5.2
-- Django REST Framework
-- Django REST Framework SimpleJWT
-- LlamaIndex 0.14
-- Groq API (Llama 3.3 70B)
-- HuggingFace Inference API (remote embeddings)
-
-**Infrastructure:**
-
-- Railway (backend + PostgreSQL)
-- Vercel (frontend)
-- Docker
-
-## 📊 API Endpoints
-
-### Get Therapy Response
-
-```
-GET /api/get_started/
-Parameters:
-  - question: string (required)
-  - therapy_type: string (optional, default: "general therapy")
-
-Response:
-{
-  "response": "AI-generated therapeutic guidance..."
-}
-```
+**Infrastructure:** Railway (backend + PostgreSQL), Vercel (frontend), Docker
 
 ## ⚠️ Disclaimer
 
@@ -234,7 +194,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Mental health resources from [Child Mind Institute](https://childmind.org)
+- Embeddings by [FastEmbed](https://github.com/qdrant/fastembed) with BAAI bge-small-en-v1.5
 - Built with [LlamaIndex](https://www.llamaindex.ai/)
 - Powered by [Groq](https://groq.com/)
 

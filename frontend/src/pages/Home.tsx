@@ -1,100 +1,116 @@
-import { Box, Typography, Button, Grid, Paper } from "@mui/material";
-import { useNavigate } from "@tanstack/react-router";
+import { Box, Button, Container, Paper, Stack, Typography } from "@mui/material";
+import { ChatBubbleOutline, Lock, Psychology, Schedule } from "@mui/icons-material";
+import { Link } from "@tanstack/react-router";
+import { useAuth } from "../context/AuthContext";
+import { RequireAuth } from "../components/RouteGuards";
+import { Dashboard } from "./Dashboard";
+
+const FEATURES = [
+  {
+    icon: <Schedule />,
+    title: "There when you need it",
+    body: "Talk through what's on your mind any time of day, at your own pace.",
+  },
+  {
+    icon: <Psychology />,
+    title: "Grounded in evidence",
+    body: "Guidance draws on approaches like CBT and DBT, and on trusted mental-health resources.",
+  },
+  {
+    icon: <ChatBubbleOutline />,
+    title: "Conversations that remember",
+    body: "Pick up where you left off. Each conversation keeps its own history and focus.",
+  },
+  {
+    icon: <Lock />,
+    title: "Private to you",
+    body: "Your conversations are tied to your account and never shared with other users.",
+  },
+];
 
 export const Home = () => {
-  const navigate = useNavigate();
+  const { authenticated } = useAuth();
+
+  // Signed-in users get their hub instead of the marketing page
+  if (authenticated) {
+    return (
+      <RequireAuth verified>
+        <Dashboard />
+      </RequireAuth>
+    );
+  }
 
   return (
-    <Box sx={{ padding: 4 }}>
-      {/* Hero Section */}
+    <>
       <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          textAlign: "center",
-          mb: 6,
-        }}
+        sx={(theme) => ({
+          background: `radial-gradient(ellipse at top, ${theme.vars?.palette.primary.main ?? theme.palette.primary.main}22, transparent 60%)`,
+        })}
       >
-        <Typography mt={4} variant="h2" component="h1" gutterBottom>
-          Welcome to TherapyBot
-        </Typography>
-        <Typography variant="h5" color="textSecondary" gutterBottom>
-          Your AI companion for mental wellness — here to listen, support, and
-          guide you anytime.
-        </Typography>
+        <Container maxWidth="md" sx={{ py: { xs: 8, md: 12 }, textAlign: "center" }}>
+          <Typography variant="overline" color="primary" fontWeight={700} letterSpacing={2}>
+            AI-powered emotional support
+          </Typography>
+          <Typography variant="h2" component="h1" sx={{ fontSize: { xs: "2.4rem", md: "3.5rem" }, mt: 1 }}>
+            A calm space to talk things through
+          </Typography>
+          <Typography
+            variant="h6"
+            color="text.secondary"
+            fontWeight={400}
+            sx={{ mt: 3, maxWidth: 620, mx: "auto" }}
+          >
+            TherapyBot listens without judgment and offers practical, evidence-based ideas for handling stress,
+            anxiety, relationships, and everyday challenges.
+          </Typography>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="center" sx={{ mt: 5 }}>
+            <Button component={Link} to={authenticated ? "/chat" : "/register"} variant="contained" size="large">
+              {authenticated ? "Continue chatting" : "Start a conversation"}
+            </Button>
+            {!authenticated && (
+              <Button component={Link} to="/login" variant="outlined" size="large">
+                I already have an account
+              </Button>
+            )}
+          </Stack>
+        </Container>
+      </Box>
+
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
         <Box
-          component="img"
-          src="therapy.jpg"
-          alt="Therapy illustration"
-          sx={{ width: "100%", maxWidth: 400, mt: 3, borderRadius: 2 }}
-        />
-        <Typography variant="body1" sx={{ mt: 3, maxWidth: 600 }}>
-          TherapyBot is an AI-powered tool designed to help you explore your
-          thoughts and emotions in a safe, private environment. Whether you’re
-          dealing with stress, anxiety, or just need someone to talk to,
-          TherapyBot is here to provide guidance and support.
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mt: 4, px: 5 }}
-          onClick={() => {
-            navigate({ to: "/chat" });
+          sx={{
+            display: "grid",
+            gap: 3,
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
           }}
         >
-          Start Chatting
-        </Button>
-      </Box>
-
-      {/* How It Works Section */}
-      <Box sx={{ mb: 6 }}>
-        <Typography variant="h4" component="h2" gutterBottom textAlign="center">
-          How It Works
-        </Typography>
-        <Grid container spacing={4} justifyContent="center">
-          <Grid>
-            <Paper sx={{ p: 3, textAlign: "center" }} elevation={3}>
+          {FEATURES.map((f) => (
+            <Paper key={f.title} variant="outlined" sx={{ p: 3, borderRadius: 4 }}>
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 3,
+                  display: "grid",
+                  placeItems: "center",
+                  bgcolor: "action.hover",
+                  color: "primary.main",
+                  mb: 2,
+                }}
+              >
+                {f.icon}
+              </Box>
               <Typography variant="h6" gutterBottom>
-                Chat Anytime
+                {f.title}
               </Typography>
-              <Typography variant="body2">
-                Start a conversation and share what’s on your mind. TherapyBot
-                is available 24/7.
+              <Typography variant="body2" color="text.secondary">
+                {f.body}
               </Typography>
             </Paper>
-          </Grid>
-          <Grid>
-            <Paper sx={{ p: 3, textAlign: "center" }} elevation={3}>
-              <Typography variant="h6" gutterBottom>
-                Personalized Guidance
-              </Typography>
-              <Typography variant="body2">
-                Get AI-driven advice tailored to your feelings and situation.
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid>
-            <Paper sx={{ p: 3, textAlign: "center" }} elevation={3}>
-              <Typography variant="h6" gutterBottom>
-                Privacy First
-              </Typography>
-              <Typography variant="body2">
-                Your conversations are confidential and secure.
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-
-      {/* Optional Footer / Disclaimer */}
-      <Box sx={{ textAlign: "center", mt: 6 }}>
-        <Typography variant="caption" color="textSecondary">
-          TherapyBot is not a replacement for professional therapy. If you are
-          in crisis, please contact a licensed mental health professional.
-        </Typography>
-      </Box>
-    </Box>
+          ))}
+        </Box>
+      </Container>
+    </>
   );
 };
 

@@ -1,39 +1,28 @@
-# Use official lightweight Python image
 FROM python:3.11-slim
 
-# Prevent Python from writing pyc files and buffering stdout/stderr
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Upgrade pip
-RUN pip install --upgrade pip
-
-# Install Python dependencies
 COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# Install CPU-only torch first to prevent the default CUDA build (~1.5GB larger) from
-# being pulled in as a transitive dependency. Since we now use a remote embedding API
-# this layer may be skipped entirely if nothing in requirements.txt needs torch.
-# Keeping it here as a safety net — it is a no-op if torch is not required.
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
-
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy project files
 COPY . .
 
-# Expose Railway's default port
+# Collect admin static files at build time (SECRET_KEY is only needed to import settings)
+RUN SECRET_KEY=build-only python manage.py collectstatic --noinput
+
+# Bake the embedding model into the image so the first request doesn't download it
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5', cache_dir='/app/.fastembed_cache')"
+
+RUN useradd --create-home --uid 1000 app && chown -R app:app /app
+USER app
+
+ENV PORT=8000
 EXPOSE 8000
 
-# Start the app
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn djangoProject.wsgi:application --bind 0.0.0.0:8000"]
+# LLM calls can take a while, so use threads and a generous timeout
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py import_articles --if-empty && python manage.py build_index --if-stale && exec gunicorn djangoProject.wsgi:application --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY:-2} --threads 4 --timeout 120 --access-logfile -"]

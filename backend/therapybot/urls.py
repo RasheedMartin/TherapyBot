@@ -1,15 +1,39 @@
-from django.http import JsonResponse
-from therapybot import views
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 
-router = DefaultRouter()
+from therapybot import views
 
 urlpatterns = [
-    path("", include(router.urls)),
+    path("health/", views.health, name="health"),
+    path("config/", views.public_config, name="public-config"),
+    path("auth/google/", views.google_sign_in, name="google-sign-in"),
+    path("therapy-types/", views.therapy_types, name="therapy-types"),
     path("current_user/", views.current_user, name="current_user"),
-    path("get_started/", views.get_started, name="get_started"),
-    path("register_user/", views.register_user, name="register_user"),
-    path('forgot-password/', views.forgot_password, name='forgot-password'),
-    path('reset-password/', views.reset_password, name='reset-password'),
+    path("profile/", views.profile, name="profile"),
+    path("account/password/", views.change_password, name="change-password"),
+    path("account/export/", views.export_data, name="export-data"),
+    path("account/delete/", views.delete_account, name="delete-account"),
+    path("register/", views.register_user, name="register"),
+    path("verify-email/", views.verify_email, name="verify-email"),
+    path("verify-email/resend/", views.resend_verification, name="resend-verification"),
+    path("forgot-password/", views.forgot_password, name="forgot-password"),
+    path("reset-password/", views.reset_password, name="reset-password"),
+    path("conversations/", views.ConversationListCreate.as_view(), name="conversation-list"),
+    path("conversations/<int:pk>/", views.ConversationDetail.as_view(), name="conversation-detail"),
+    path("conversations/<int:pk>/messages/", views.send_message, name="conversation-messages"),
+    path("conversations/<int:pk>/messages/stream/", views.stream_message, name="conversation-messages-stream"),
+    path("providers/", views.provider_search, name="provider-search"),
+    path("saved-providers/", views.SavedProviderListCreate.as_view(), name="saved-provider-list"),
+    path("saved-providers/<int:pk>/", views.SavedProviderDetail.as_view(), name="saved-provider-detail"),
+    path("plans/", views.PlanListCreate.as_view(), name="plan-list"),
+    path("plans/draft/", views.draft_plan, name="plan-draft"),
+    path("plans/<int:pk>/", views.PlanDetail.as_view(), name="plan-detail"),
+    path("plans/<int:pk>/calendar.ics", views.plan_calendar, name="plan-calendar"),
+    path("plan-steps/<int:pk>/check-in/", views.step_check_in, name="step-check-in"),
+    path("account/calendar-feed/", views.calendar_feed_settings, name="calendar-feed-settings"),
+    path("calendar/<str:token>.ics", views.calendar_feed, name="calendar-feed"),
+    path("quick-check-in/", views.quick_check_in, name="quick-check-in"),
+    path("reminders/unsubscribe/", views.unsubscribe_reminders, name="unsubscribe-reminders"),
+    path("notes/", views.SessionNoteListCreate.as_view(), name="note-list"),
+    path("notes/<int:pk>/", views.SessionNoteDetail.as_view(), name="note-detail"),
+    path("notes/<int:pk>/discuss/", views.discuss_note, name="note-discuss"),
 ]

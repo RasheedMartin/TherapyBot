@@ -1,0 +1,9 @@
+# Cron service: daily plan reminder emails (config path /backend/railway.reminders.toml)
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python manage.py send_reminders"
+cronSchedule = "*/15 * * * *"
+restartPolicyType = "NEVER"
