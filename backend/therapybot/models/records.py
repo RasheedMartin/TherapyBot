@@ -145,3 +145,63 @@ class TreatmentObjective(models.Model):
 
     class Meta:
         ordering = ["order", "id"]
+
+
+class Screening(models.Model):
+    """A completed PHQ-9 / GAD-7. Totals and severity are computed in code (clinical.instruments)."""
+
+    class Instrument(models.TextChoices):
+        PHQ9 = "phq9", "PHQ-9"
+        GAD7 = "gad7", "GAD-7"
+
+    class Source(models.TextChoices):
+        CLINICIAN = "clinician", "Entered by the therapist"
+        SELF_REPORT = "self_report", "Completed by the client"
+
+    client = models.ForeignKey("Client", on_delete=models.CASCADE, related_name="screenings")
+    instrument = models.CharField(max_length=8, choices=Instrument.choices)
+    responses = EncryptedJSONField()  # item scores, 0-3 each
+    total = models.PositiveSmallIntegerField()
+    severity = models.CharField(max_length=20)
+    administered_on = models.DateField()
+    source = models.CharField(max_length=12, choices=Source.choices)
+    entered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-administered_on", "-created_at"]
+
+    def __str__(self):
+        return f"{self.get_instrument_display()} {self.total} ({self.administered_on})"
+
+
+class RiskFlag(models.Model):
+    """
+    Something in a client's data a therapist should follow up on: a positive PHQ-9 item 9, or (later)
+    risk detected in the companion chat. This is not live monitoring; clients are told so.
+    """
+
+    class Level(models.TextChoices):
+        ELEVATED = "elevated", "Elevated"
+        IMMINENT = "imminent", "Imminent"
+
+    class SourceType(models.TextChoices):
+        SCREENING = "screening", "Screening"
+        CHAT = "chat", "Companion chat"
+
+    client = models.ForeignKey("Client", on_delete=models.CASCADE, related_name="risk_flags")
+    level = models.CharField(max_length=10, choices=Level.choices)
+    source_type = models.CharField(max_length=10, choices=SourceType.choices)
+    screening = models.ForeignKey(Screening, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    reason = models.CharField(max_length=200)  # no clinical text beyond a short standard description
+    created_at = models.DateTimeField(auto_now_add=True)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["acknowledged_at", "-created_at"]
+
+    def __str__(self):
+        return f"{self.level} flag for {self.client} ({self.source_type})"

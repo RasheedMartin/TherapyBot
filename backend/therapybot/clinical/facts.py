@@ -7,7 +7,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from therapybot.models import CareRelationship, Client, ClinicalDocument, Plan, Session
+from therapybot.clinical.screenings import screening_trends
+from therapybot.models import CareRelationship, Client, ClinicalDocument, Plan, RiskFlag, Session
 
 HOMEWORK_WINDOW_DAYS = 14
 
@@ -46,6 +47,8 @@ def client_facts(client: Client, therapist) -> dict:
         "draft_notes": ClinicalDocument.objects.filter(client=client, status=ClinicalDocument.Status.DRAFT).count(),
         "client_shares_checkins": shares_checkins,
         "homework": _homework(client, shares_checkins),
+        "screenings": screening_trends(client),
+        "open_risk_flags": RiskFlag.objects.filter(client=client, acknowledged_at__isnull=True).count(),
     }
 
 
@@ -57,6 +60,12 @@ def render_facts(facts: dict) -> str:
         + (f" ({facts['last_session_modality']})" if facts["last_session_modality"] else ""),
         f"Next session: {facts['next_session_date'] or 'not scheduled'}",
     ]
+    for s in facts.get("screenings", []):
+        change = "" if s["change"] is None else f", {s['change']:+d} since {s['previous_date']}"
+        lines.append(f"{s['instrument']}: {s['latest_total']}/{s['max_total']} ({s['latest_severity']}) on "
+                     f"{s['latest_date']}{change}")
+    if facts.get("open_risk_flags"):
+        lines.append(f"Unacknowledged risk flags: {facts['open_risk_flags']}")
     if not facts["homework"]:
         lines.append("Assigned homework: none")
     for hw in facts["homework"]:

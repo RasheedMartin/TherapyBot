@@ -28,6 +28,13 @@ from therapybot.views.clinical import (
     treatment_plan_detail,
     treatment_plans,
 )
+from therapybot.views.screenings import (
+    acknowledge_risk_flag,
+    client_screenings,
+    instruments,
+    my_screenings,
+    risk_flags,
+)
 from therapybot.views.care_team import (
     accept_invite,
     care_team,
@@ -79,6 +86,11 @@ from therapybot.views.plans import (
 )
 
 __all__ = [
+    "acknowledge_risk_flag",
+    "client_screenings",
+    "instruments",
+    "my_screenings",
+    "risk_flags",
     "add_addendum",
     "ask",
     "create_document",

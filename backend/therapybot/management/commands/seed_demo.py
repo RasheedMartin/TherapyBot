@@ -13,7 +13,18 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from therapybot.models import CareRelationship, Client, ClinicalDocument, Plan, Practice, PracticeMembership, Profile, Session
+from therapybot.clinical.instruments import INSTRUMENTS
+from therapybot.models import (
+    CareRelationship,
+    Client,
+    ClinicalDocument,
+    Plan,
+    Practice,
+    PracticeMembership,
+    Profile,
+    Screening,
+    Session,
+)
 
 PASSWORD = "demo-Therapy-2026"
 PRACTICE = "Demo Practice (synthetic data)"
@@ -36,6 +47,7 @@ CLIENTS = [
             "meetings this week); begin stimulus control.",
         ],
         "homework": [("Thought record", "daily"), ("Worry time at 6pm", "daily")],
+        "screenings": [("gad7", 0, 14), ("gad7", 2, 12), ("gad7", 3, 9)],  # (instrument, session index, total)
     },
     {
         "username": "demo_priya", "name": "Priya Raman", "modality": "dbt",
@@ -49,6 +61,7 @@ CLIENTS = [
             "Introduced DEAR MAN for asking her partner for calmer conversations. Plan: role-play DEAR MAN.",
         ],
         "homework": [("Diary card", "daily")],
+        "screenings": [("phq9", 0, 11), ("phq9", 2, 8)],
     },
     {
         "username": "demo_marcus", "name": "Marcus Bell", "modality": "act",
@@ -60,6 +73,7 @@ CLIENTS = [
             "as avoidance. Committed action: call one former colleague this week; walk 3x/week.",
         ],
         "homework": [("Walk 20 minutes", "weekdays")],
+        "screenings": [("phq9", 0, 13), ("phq9", 1, 11)],
     },
 ]
 
@@ -113,8 +127,24 @@ class Command(BaseCommand):
             CareRelationship.objects.create(client=client, therapist=therapist, status="active",
                                             consented_at=timezone.now())
             count = len(spec["notes"])
+            session_dates = [today - timedelta(days=7 * (count - i)) for i in range(count)]
+            for instrument_key, session_index, total in spec["screenings"]:
+                instrument = INSTRUMENTS[instrument_key]
+                responses = [min(3, max(0, total - 3 * i)) for i in range(len(instrument.items))]
+                if instrument.risk_item is not None and responses[instrument.risk_item]:
+                    # keep the safety item at 0 in demo data; move its points to the first item with room
+                    spare = responses[instrument.risk_item]
+                    responses[instrument.risk_item] = 0
+                    for i in range(len(responses)):
+                        room = min(3 - responses[i], spare) if i != instrument.risk_item else 0
+                        responses[i] += room
+                        spare -= room
+                Screening.objects.create(client=client, instrument=instrument_key, responses=responses,
+                                         total=sum(responses), severity=instrument.score(responses)[1],
+                                         administered_on=session_dates[session_index], source="clinician",
+                                         entered_by=therapist)
             for i, text in enumerate(spec["notes"]):
-                date = today - timedelta(days=7 * (count - i))
+                date = session_dates[i]
                 session = Session.objects.create(client=client, therapist=therapist, date=date, modality=spec["modality"])
                 ClinicalDocument.objects.create(
                     client=client, author=therapist, session=session, session_date=date, doc_type="progress_note",
