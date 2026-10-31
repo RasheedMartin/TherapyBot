@@ -25,4 +25,4 @@ ENV PORT=8000
 EXPOSE 8000
 
 # LLM calls can take a while, so use threads and a generous timeout
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py build_index --if-stale && exec gunicorn djangoProject.wsgi:application --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY:-2} --threads 4 --timeout 120 --access-logfile -"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py import_articles --if-empty && python manage.py build_index --if-stale && exec gunicorn djangoProject.wsgi:application --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY:-2} --threads 4 --timeout 120 --access-logfile -"]
