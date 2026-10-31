@@ -1,90 +1,54 @@
-// src/pages/ForgotPasswordPage.tsx
 import { useState } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Stack,
-  Link,
-} from "@mui/material";
-import { useNavigate } from "@tanstack/react-router";
+import { Alert, Box, Button, Stack, TextField } from "@mui/material";
 import { useMutation } from "@tanstack/react-query";
-import api from "../api/client";
+import api, { getErrorMessage } from "../api/client";
+import { AuthLayout } from "./AuthLayout";
+import { RouterLink } from "./RouterLink";
 
 export const ForgotPasswordPage = () => {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
 
   const forgotPasswordMutation = useMutation({
     mutationFn: (data: { email: string }) => api.post("forgot-password/", data),
-    onSuccess: () => {
-      alert("Password reset email sent! Please check your inbox.");
-      navigate({ to: "/login" });
-    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    forgotPasswordMutation.mutate({ email });
+    forgotPasswordMutation.mutate({ email: email.trim() });
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#f5f5f5",
-      }}
+    <AuthLayout
+      title="Reset your password"
+      subtitle="Enter the email on your account and we'll send you a reset link."
+      footer={<RouterLink to="/login">Back to sign in</RouterLink>}
     >
-      <Paper
-        elevation={6}
-        sx={{ p: 4, borderRadius: 3, width: "100%", maxWidth: 400 }}
-      >
-        <Typography variant="h4" textAlign="center" gutterBottom>
-          Forgot Password
-        </Typography>
-        <Typography
-          variant="body2"
-          textAlign="center"
-          color="textSecondary"
-          mb={2}
-        >
-          Enter your email to receive password reset instructions.
-        </Typography>
-
+      {forgotPasswordMutation.isSuccess ? (
+        <Alert severity="success">
+          If an account exists for <strong>{email}</strong>, a reset link is on its way. Check your inbox (and spam
+          folder).
+        </Alert>
+      ) : (
         <Box component="form" onSubmit={handleSubmit}>
-          <Stack spacing={2}>
+          <Stack spacing={2.5}>
+            {forgotPasswordMutation.isError && (
+              <Alert severity="error">{getErrorMessage(forgotPasswordMutation.error)}</Alert>
+            )}
             <TextField
               type="email"
               label="Email"
+              autoComplete="email"
+              autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              fullWidth
             />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              disabled={forgotPasswordMutation.isPending}
-            >
-              {forgotPasswordMutation.isPending
-                ? "Sending..."
-                : "Send Reset Link"}
+            <Button type="submit" variant="contained" size="large" disabled={forgotPasswordMutation.isPending}>
+              {forgotPasswordMutation.isPending ? "Sending…" : "Send reset link"}
             </Button>
           </Stack>
         </Box>
-
-        <Typography variant="body2" textAlign="center" mt={3}>
-          <Link component="button" onClick={() => navigate({ to: "/login" })}>
-            Back to Login
-          </Link>
-        </Typography>
-      </Paper>
-    </Box>
+      )}
+    </AuthLayout>
   );
 };
