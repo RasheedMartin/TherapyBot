@@ -42,6 +42,9 @@ if DEBUG:
 # Railway sets this for the generated public domain
 if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
     ALLOWED_HOSTS.append(os.environ["RAILWAY_PUBLIC_DOMAIN"])
+# Railway's deploy health checks call the app with this Host header
+if os.getenv("RAILWAY_ENVIRONMENT"):
+    ALLOWED_HOSTS.append("healthcheck.railway.app")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
