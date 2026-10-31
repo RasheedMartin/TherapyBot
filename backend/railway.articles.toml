@@ -1,0 +1,9 @@
+# Cron service: weekly MedlinePlus article refresh (config path /backend/railway.articles.toml)
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python manage.py import_articles"
+cronSchedule = "0 6 * * 1"
+restartPolicyType = "NEVER"
