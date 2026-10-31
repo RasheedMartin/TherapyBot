@@ -14,7 +14,12 @@ import { Login } from "./components/Login";
 import { RegisterPage } from "./components/Register";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
 import { ResetPasswordPage } from "./components/ResetPasswordPage";
-import { RequireAuth, RequireGuest } from "./components/RouteGuards";
+import { RequireAuth, RequireGuest, RequireTherapist } from "./components/RouteGuards";
+import { AcceptInvitePage } from "./pages/AcceptInvite";
+import { ClientDetail } from "./pages/practice/ClientDetail";
+import { DocumentPage } from "./pages/practice/DocumentPage";
+import { PracticeHome } from "./pages/practice/PracticeHome";
+import { TherapistSignup } from "./pages/practice/TherapistSignup";
 
 const rootRoute = createRootRoute({
   component: App,
@@ -40,9 +45,14 @@ const loginRoute = createRoute({
   ),
 });
 
+const redirectSearch = (search: Record<string, unknown>): { redirect?: string } => ({
+  redirect: typeof search.redirect === "string" && search.redirect.startsWith("/") ? search.redirect : undefined,
+});
+
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "register",
+  validateSearch: redirectSearch,
   component: () => (
     <RequireGuest>
       <RegisterPage />
@@ -161,9 +171,61 @@ const remindersOffRoute = createRoute({
 const termsRoute = createRoute({ getParentRoute: () => rootRoute, path: "terms", component: TermsPage });
 const privacyRoute = createRoute({ getParentRoute: () => rootRoute, path: "privacy", component: PrivacyPage });
 
+const therapistSignupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "therapists/register",
+  component: () => (
+    <RequireGuest>
+      <TherapistSignup />
+    </RequireGuest>
+  ),
+});
+
+const practiceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "practice",
+  component: () => (
+    <RequireTherapist>
+      <PracticeHome />
+    </RequireTherapist>
+  ),
+});
+
+const practiceClientRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "practice/clients/$clientId",
+  component: () => (
+    <RequireTherapist>
+      <ClientDetail />
+    </RequireTherapist>
+  ),
+});
+
+const practiceDocumentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "practice/clients/$clientId/documents/$docId",
+  component: () => (
+    <RequireTherapist>
+      <DocumentPage />
+    </RequireTherapist>
+  ),
+});
+
+const acceptInviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "care-team/invite",
+  validateSearch: (search: Record<string, unknown>) => ({ t: typeof search.t === "string" ? search.t : "" }),
+  component: AcceptInvitePage,
+});
+
 export const router = createRouter({
   routeTree: rootRoute.addChildren([
     homeRoute,
+    therapistSignupRoute,
+    practiceRoute,
+    practiceClientRoute,
+    practiceDocumentRoute,
+    acceptInviteRoute,
     loginRoute,
     registerRoute,
     forgotPasswordRoute,

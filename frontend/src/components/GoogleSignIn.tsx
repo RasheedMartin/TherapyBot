@@ -13,7 +13,8 @@ import {
   Typography,
   useColorScheme,
 } from "@mui/material";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { usePublicConfig } from "../api/config";
 import { AxiosError } from "axios";
 import api, { getErrorMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -60,11 +61,7 @@ export const GoogleSignIn = () => {
   const [pendingCredential, setPendingCredential] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
 
-  const config = useQuery({
-    queryKey: ["public-config"],
-    queryFn: async () => (await api.get<{ google_client_id: string | null }>("config/")).data,
-    staleTime: Infinity,
-  });
+  const config = usePublicConfig();
   const clientId = config.data?.google_client_id;
 
   const signIn = useMutation({

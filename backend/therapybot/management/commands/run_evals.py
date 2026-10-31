@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from therapybot import ai
+from therapybot import ai, llm
 
 EVALS_DIR = Path(settings.BASE_DIR) / "evals"
 RUBRIC = ["empathy", "conversational", "helpfulness", "safety", "boundaries"]
@@ -29,16 +29,12 @@ Compare against the description of a good reply. Reply with JSON only:
 
 
 def judge(case, reply):
-    from llama_index.core.llms import ChatMessage, MessageRole
-
     history = "\n".join(f"{r}: {c}" for r, c in case.get("history", []))
     prompt = (
         f"Conversation so far:\n{history or '(none)'}\n\nUser: {case['message']}\n\nAI reply:\n{reply}\n\n"
         f"What a good reply looks like:\n{case['good_reply']}"
     )
-    raw = ai.get_llm().chat(
-        [ChatMessage(role=MessageRole.SYSTEM, content=JUDGE_PROMPT), ChatMessage(role=MessageRole.USER, content=prompt)]
-    ).message.content or ""
+    raw = llm.get_chat_model().complete([llm.system(JUDGE_PROMPT), llm.user(prompt)])
     return json.loads(raw[raw.find("{") : raw.rfind("}") + 1])
 
 

@@ -22,6 +22,8 @@ import { THERAPY_TYPES, type Conversation, type ConversationDetail, type PlanDra
 import { useAuth } from "../context/AuthContext";
 import { ConversationList } from "../components/chat/ConversationList";
 import { Composer } from "../components/chat/Composer";
+import { CareTeamSharing } from "../components/chat/CareTeamSharing";
+import { useActiveCareTeam } from "../components/chat/careTeam";
 import { CrisisBanner } from "../components/chat/CrisisBanner";
 import { MessageBubble, TypingIndicator } from "../components/chat/MessageBubble";
 import { PlanEditor } from "../components/plans/PlanEditor";
@@ -42,6 +44,7 @@ export const ChatPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { c: activeId } = useSearch({ from: "/chat" });
+  const careTeam = useActiveCareTeam();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -101,7 +104,7 @@ export const ChatPage = () => {
       if (id == null) {
         const created = await api.post<Conversation>("conversations/", { therapy_type: therapyType });
         id = created.data.id;
-        queryClient.setQueryData<ConversationDetail>(["conversation", id], { ...created.data, messages: [] });
+        queryClient.setQueryData<ConversationDetail>(["conversation", id], { ...created.data, messages: [], care_summary: "" });
         navigate({ to: "/chat", search: { c: id }, replace: true });
       }
       const data = await streamMessage(id, text, (delta) => setStreamed((prev) => prev + delta));
@@ -115,6 +118,7 @@ export const ChatPage = () => {
     },
     onSuccess: ({ id, data }) => {
       queryClient.setQueryData<ConversationDetail>(["conversation", id], (old) => ({
+        care_summary: old?.care_summary ?? "",
         ...data.conversation,
         messages: [...(old?.messages ?? []), ...data.messages],
       }));
@@ -197,6 +201,7 @@ export const ChatPage = () => {
             variant="outlined"
             sx={{ display: { xs: "none", sm: "inline-flex" } }}
           />
+          {conversation && <CareTeamSharing conversation={conversation} />}
           {activeId != null && messages.length > 0 && (
             <Tooltip title="Turn this conversation into a plan or routine">
               <Button
@@ -327,7 +332,10 @@ export const ChatPage = () => {
 
         {showCrisisBanner && (
           <Box sx={{ px: { xs: 1.5, sm: 3 }, pt: 1 }}>
-            <CrisisBanner onDismiss={() => setDismissedRiskId(lastRiskyId ?? null)} />
+            <CrisisBanner
+              onDismiss={() => setDismissedRiskId(lastRiskyId ?? null)}
+              therapists={careTeam.map((m) => m.therapist_name)}
+            />
           </Box>
         )}
         <Composer
