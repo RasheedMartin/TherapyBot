@@ -1,3 +1,5 @@
+"""Accounts and the client companion: profiles, conversations, plans, providers, notes."""
+
 from datetime import timedelta
 
 from django.conf import settings
@@ -23,10 +25,20 @@ THERAPY_TYPES = [
 class UserSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
     email_verified = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
+    npi_status = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "email_verified", "display_name", "date_joined")
+        fields = ("id", "username", "email", "email_verified", "display_name", "role", "npi_status", "date_joined")
+
+    def get_role(self, user):
+        profile = getattr(user, "profile", None)
+        return profile.role if profile else "client"
+
+    def get_npi_status(self, user):
+        profile = getattr(user, "profile", None)
+        return profile.npi_status if profile else ""
 
     def get_email_verified(self, user):
         return is_email_verified(user)

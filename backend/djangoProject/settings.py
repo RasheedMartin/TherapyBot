@@ -149,6 +149,12 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
+# --- Clinical data ------------------------------------------------------------
+
+# False until hosting, database and AI providers are covered by BAAs. The app shows a "synthetic data
+# only" notice everywhere clinical records can be entered.
+PHI_ALLOWED = env_bool("PHI_ALLOWED", False)
+
 # --- Sign in with Google (optional; the button is hidden when unset) ---------
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -208,7 +214,8 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {"simple": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple"}},
+    "filters": {"redact": {"()": "therapybot.logging_filters.RedactPII"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple", "filters": ["redact"]}},
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
     "loggers": {"httpx": {"level": "WARNING"}},
 }

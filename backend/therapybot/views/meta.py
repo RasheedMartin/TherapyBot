@@ -32,7 +32,7 @@ def health(request):
 @permission_classes([AllowAny])
 def public_config(request):
     """Settings the frontend needs before sign-in."""
-    return Response({"google_client_id": settings.GOOGLE_CLIENT_ID or None})
+    return Response({"google_client_id": settings.GOOGLE_CLIENT_ID or None, "phi_allowed": settings.PHI_ALLOWED})
 
 
 @api_view(["GET"])

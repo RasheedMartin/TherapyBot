@@ -4,19 +4,16 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
-from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from rest_framework.test import APIClient
 
 from therapybot import ai, llm, rag, safety
-from therapybot.models import Conversation, Message, Plan, PlanStep, Profile, SavedProvider, SessionNote
+from therapybot.models import Conversation, Message, Plan, PlanStep, SavedProvider, SessionNote
 from therapybot.verification import email_verification_token
 
-STRONG_PASSWORD = "calm-River-42-lantern"
-CONSENT = {"confirm_age": True, "accept_terms": True}
+from therapybot.tests.helpers import CONSENT, STRONG_PASSWORD, APITestCase
 
 
 def fake_models(main=None, fast=None):
@@ -144,20 +141,6 @@ class ProviderInterfaceTests(TestCase):
         kwargs = client.chat.completions.create.call_args.kwargs
         self.assertEqual(kwargs["messages"], [{"role": "user", "content": "hi"}])
         self.assertEqual(kwargs["reasoning_effort"], "low")
-
-
-class APITestCase(TestCase):
-    def setUp(self):
-        cache.clear()
-        self.client = APIClient()
-
-    def make_user(self, username="alice", email="alice@example.com", verified=True):
-        user = User.objects.create_user(username=username, email=email, password=STRONG_PASSWORD)
-        Profile.objects.create(user=user, email_verified_at=timezone.now() if verified else None)
-        return user
-
-    def login(self, user):
-        self.client.force_authenticate(user)
 
 
 class AuthTests(APITestCase):

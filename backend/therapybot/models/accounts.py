@@ -9,12 +9,28 @@ from django.utils import timezone as dj_timezone
 
 
 class Profile(models.Model):
+    class Role(models.TextChoices):
+        CLIENT = "client", "Client"
+        THERAPIST = "therapist", "Therapist"
+
+    class NpiStatus(models.TextChoices):
+        NONE = "", "Not provided"
+        VERIFIED = "verified", "Verified against the NPI Registry"
+        NEEDS_REVIEW = "needs_review", "Needs manual review"
+        REJECTED = "rejected", "Rejected"
+
     class SessionFormat(models.TextChoices):
         ANY = "any", "No preference"
         IN_PERSON = "in_person", "In person"
         TELEHEALTH = "telehealth", "Telehealth"
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.CLIENT)
+    # Therapists only: identity check against the public NPI Registry, with manual review as a fallback
+    npi = models.CharField(max_length=10, blank=True)
+    npi_status = models.CharField(max_length=12, choices=NpiStatus.choices, blank=True, default=NpiStatus.NONE)
+    npi_verified_at = models.DateTimeField(null=True, blank=True)
+    npi_details = models.JSONField(default=dict, blank=True)  # name/taxonomy as listed in the registry
     display_name = models.CharField(max_length=80, blank=True)
     goals = models.TextField(max_length=1000, blank=True)
     zip_code = models.CharField(max_length=10, blank=True)

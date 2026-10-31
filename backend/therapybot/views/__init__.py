@@ -13,6 +13,13 @@ from therapybot.views.accounts import (
     reset_password,
     verify_email,
 )
+from therapybot.views.care_team import (
+    accept_invite,
+    care_team,
+    invite_preview,
+    leave_care,
+    update_sharing,
+)
 from therapybot.views.care import (
     SavedProviderDetail,
     SavedProviderListCreate,
@@ -36,6 +43,13 @@ from therapybot.views.notes import (
     SessionNoteListCreate,
     discuss_note,
 )
+from therapybot.views.practice import (
+    client_detail,
+    clients,
+    end_relationship,
+    register_therapist,
+    resend_invite,
+)
 from therapybot.views.plans import (
     PlanDetail,
     PlanListCreate,
@@ -50,6 +64,16 @@ from therapybot.views.plans import (
 )
 
 __all__ = [
+    "accept_invite",
+    "care_team",
+    "client_detail",
+    "clients",
+    "end_relationship",
+    "invite_preview",
+    "leave_care",
+    "register_therapist",
+    "resend_invite",
+    "update_sharing",
     "ConversationDetail",
     "ConversationListCreate",
     "PlanDetail",

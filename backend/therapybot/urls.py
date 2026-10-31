@@ -36,4 +36,16 @@ urlpatterns = [
     path("notes/", views.SessionNoteListCreate.as_view(), name="note-list"),
     path("notes/<int:pk>/", views.SessionNoteDetail.as_view(), name="note-detail"),
     path("notes/<int:pk>/discuss/", views.discuss_note, name="note-discuss"),
+    # Therapists
+    path("therapists/register/", views.register_therapist, name="therapist-register"),
+    path("practice/clients/", views.clients, name="practice-clients"),
+    path("practice/clients/<int:pk>/", views.client_detail, name="practice-client-detail"),
+    path("practice/clients/<int:pk>/resend-invite/", views.resend_invite, name="practice-client-resend-invite"),
+    path("practice/clients/<int:pk>/end/", views.end_relationship, name="practice-client-end"),
+    # Clients: their care team
+    path("care-team/", views.care_team, name="care-team"),
+    path("care-team/invite/", views.invite_preview, name="care-team-invite-preview"),
+    path("care-team/accept/", views.accept_invite, name="care-team-accept"),
+    path("care-team/<int:pk>/", views.update_sharing, name="care-team-update"),
+    path("care-team/<int:pk>/leave/", views.leave_care, name="care-team-leave"),
 ]

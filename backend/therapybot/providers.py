@@ -207,3 +207,61 @@ def search_providers(zip_code: str, types: list[str]) -> dict:
     result = {"zip": zip_code, "widened": widened, "center": center, "providers": providers}
     cache.set(cache_key, result, CACHE_SECONDS)
     return result
+
+
+# --- Therapist identity check ---------------------------------------------------
+
+MENTAL_HEALTH_TAXONOMY_WORDS = (
+    "psycholog", "counselor", "social worker", "marriage & family", "psychiatr", "psychoanalyst", "mental health",
+)
+
+
+def npi_checksum_ok(npi: str) -> bool:
+    """NPIs carry a Luhn check digit computed over '80840' + the first nine digits."""
+    if not (len(npi) == 10 and npi.isdigit()):
+        return False
+    digits = [int(d) for d in "80840" + npi]
+    total = 0
+    for i, digit in enumerate(reversed(digits)):
+        if i % 2 == 1:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        total += digit
+    return total % 10 == 0
+
+
+def verify_therapist_npi(npi: str, first_name: str, last_name: str) -> tuple[str, dict]:
+    """
+    Check an NPI against the registry. Returns ("verified" | "needs_review", details). Anything we can't
+    confirm automatically (registry down, name mismatch, non-clinical taxonomy, not yet listed) goes to
+    manual review rather than being rejected outright.
+    """
+    try:
+        res = requests.get(NPI_URL, params={"version": "2.1", "number": npi}, timeout=TIMEOUT)
+        res.raise_for_status()
+        results = res.json().get("results") or []
+    except (requests.RequestException, ValueError):
+        logger.warning("NPI Registry lookup failed; sending to manual review", exc_info=True)
+        return "needs_review", {"reason": "registry_unavailable"}
+    if not results:
+        return "needs_review", {"reason": "not_found"}
+
+    record = results[0]
+    basic = record.get("basic", {})
+    primary = next((t for t in record.get("taxonomies", []) if t.get("primary")), {})
+    details = {
+        "registry_name": " ".join(filter(None, [basic.get("first_name"), basic.get("last_name")])).title(),
+        "credential": basic.get("credential") or "",
+        "taxonomy": primary.get("desc", ""),
+        "license_state": primary.get("state") or "",
+    }
+    if record.get("enumeration_type") != "NPI-1" or basic.get("status") != "A":
+        return "needs_review", {**details, "reason": "not_an_active_individual"}
+    if (basic.get("last_name") or "").strip().lower() != last_name.strip().lower() or not (
+        (basic.get("first_name") or "").strip().lower().startswith(first_name.strip().lower()[:1])
+    ):
+        return "needs_review", {**details, "reason": "name_mismatch"}
+    if not any(word in details["taxonomy"].lower() for word in MENTAL_HEALTH_TAXONOMY_WORDS):
+        return "needs_review", {**details, "reason": "not_mental_health_taxonomy"}
+    return "verified", details
