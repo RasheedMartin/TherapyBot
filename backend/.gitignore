@@ -372,6 +372,5 @@ backend/node_modules/*
 .venv/bin/*
 .DS_Store
 backend/package-lock.json
-package-lock.json
 .idea/
 .pyc

@@ -372,6 +372,10 @@ backend/node_modules/*
 .venv/bin/*
 .DS_Store
 backend/package-lock.json
-package-lock.json
+*.sqlite
+*.sqlite-*
+backend/staticfiles/
 .idea/
 .pyc
+# Local embedding model cache
+.fastembed_cache/

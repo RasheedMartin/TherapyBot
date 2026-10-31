@@ -4,5 +4,9 @@ __pycache__/
 *.pyd
 *.log
 .git/
-storage/
+.env
 venv/
+.venv/
+db.sqlite3*
+staticfiles/
+.fastembed_cache/
