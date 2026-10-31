@@ -98,3 +98,50 @@ class ClinicalDocument(models.Model):
         lines.append("Help them understand and act on these notes. Don't contradict their clinician; "
                      "suggest they ask their clinician about anything uncertain.")
         return "\n".join(lines)
+
+
+class TreatmentPlan(models.Model):
+    """Goals → objectives → interventions for one client. AI drafts start as drafts; the therapist signs."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        ACTIVE = "active", "Active"
+        ARCHIVED = "archived", "Archived"
+
+    client = models.ForeignKey("Client", on_delete=models.CASCADE, related_name="treatment_plans")
+    therapist = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    modality = models.CharField(max_length=12, choices=Session.Modality.choices, default=Session.Modality.INTEGRATIVE)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
+    problem_summary = EncryptedTextField(blank=True)
+    ai_generated = models.BooleanField(default=False)
+    signed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Treatment plan for {self.client} ({self.status})"
+
+
+class TreatmentGoal(models.Model):
+    plan = models.ForeignKey(TreatmentPlan, on_delete=models.CASCADE, related_name="goals")
+    text = EncryptedTextField()
+    # Where in the record this goal came from: [{"label", "document_id", "session_date", ...}]
+    evidence = models.JSONField(default=list, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+
+class TreatmentObjective(models.Model):
+    goal = models.ForeignKey(TreatmentGoal, on_delete=models.CASCADE, related_name="objectives")
+    text = EncryptedTextField()
+    measure = models.CharField(max_length=200, blank=True)  # how progress is judged, e.g. "GAD-7 below 10"
+    interventions = models.JSONField(default=list, blank=True)  # e.g. ["Cognitive restructuring", ...]
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]

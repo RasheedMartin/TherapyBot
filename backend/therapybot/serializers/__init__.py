@@ -16,6 +16,13 @@ from therapybot.serializers.companion import (
     SessionNoteSerializer,
     THERAPY_TYPES,
 )
+from therapybot.serializers.clinical import (
+    ClinicalDocumentSerializer,
+    DocumentSummarySerializer,
+    SessionSerializer,
+    TreatmentPlanSerializer,
+    save_goals,
+)
 from therapybot.serializers.practice import (
     TherapistRegisterSerializer,
     ClientInviteSerializer,
@@ -26,6 +33,11 @@ from therapybot.serializers.practice import (
 )
 
 __all__ = [
+    "ClinicalDocumentSerializer",
+    "DocumentSummarySerializer",
+    "SessionSerializer",
+    "TreatmentPlanSerializer",
+    "save_goals",
     "CareTeamSerializer",
     "ChangePasswordSerializer",
     "ClientInviteSerializer",

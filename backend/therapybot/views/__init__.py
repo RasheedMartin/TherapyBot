@@ -13,6 +13,21 @@ from therapybot.views.accounts import (
     reset_password,
     verify_email,
 )
+from therapybot.views.clinical import (
+    add_addendum,
+    ask,
+    create_document,
+    create_session,
+    document_detail,
+    draft_note,
+    homework,
+    prep,
+    sign_document,
+    sign_treatment_plan,
+    timeline,
+    treatment_plan_detail,
+    treatment_plans,
+)
 from therapybot.views.care_team import (
     accept_invite,
     care_team,
@@ -64,6 +79,19 @@ from therapybot.views.plans import (
 )
 
 __all__ = [
+    "add_addendum",
+    "ask",
+    "create_document",
+    "create_session",
+    "document_detail",
+    "draft_note",
+    "homework",
+    "prep",
+    "sign_document",
+    "sign_treatment_plan",
+    "timeline",
+    "treatment_plan_detail",
+    "treatment_plans",
     "accept_invite",
     "care_team",
     "client_detail",

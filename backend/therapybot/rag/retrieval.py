@@ -126,3 +126,31 @@ def search_reference(query: str, k: int = 3) -> list[tuple[Chunk, float]]:
         .order_by("distance")[:k]
     )
     return [(chunk, 1.0 - chunk.distance) for chunk in chunks]
+
+
+def recent_client_chunks(*, actor, client_id, documents: int = 3, request=None,
+                         purpose: str = "record.recent") -> list[RetrievedChunk]:
+    """
+    The client's most recent documents (by session date), in reading order. For questions about "last
+    time", where recency matters more than similarity. Same authorization and isolation checks as search.
+    """
+    client = authorize_client(actor, client_id, purpose, request=request)
+    scoped = Chunk.objects.filter(corpus=Chunk.Corpus.CLIENT_RECORD).filter(_client_scope(client))
+    recent_docs = list(
+        scoped.exclude(document__isnull=True)
+        .order_by("-session_date", "-document__created_at")
+        .values_list("document_id", flat=True)
+        .distinct()[: documents * 50]
+    )
+    keep = list(dict.fromkeys(recent_docs))[:documents]
+    chunks = list(scoped.filter(document_id__in=keep).order_by("-session_date", "document_id", "chunk_index"))
+    for chunk in chunks:
+        if not _belongs(chunk, client):
+            raise IsolationError(f"Chunk {chunk.pk} is outside client {client.pk}'s record")
+    return [
+        RetrievedChunk(
+            chunk_id=c.pk, text=c.text, score=0.0, document_id=c.document_id, session_id=c.session_id,
+            session_date=c.session_date.isoformat() if c.session_date else None, doc_type=c.doc_type,
+        )
+        for c in chunks
+    ]

@@ -5,7 +5,7 @@ from therapybot.models.companion import Conversation, Message, Plan, PlanStep, S
 from therapybot.models.knowledge import KnowledgeArticle
 from therapybot.models.practice import AuditEvent, CareRelationship, Client, Practice, PracticeMembership
 from therapybot.models.rag import Chunk
-from therapybot.models.records import ClinicalDocument, Session
+from therapybot.models.records import ClinicalDocument, Session, TreatmentGoal, TreatmentObjective, TreatmentPlan
 
 __all__ = [
     "AuditEvent",
@@ -24,4 +24,7 @@ __all__ = [
     "SavedProvider",
     "Session",
     "StepCheckIn",
+    "TreatmentGoal",
+    "TreatmentObjective",
+    "TreatmentPlan",
 ]

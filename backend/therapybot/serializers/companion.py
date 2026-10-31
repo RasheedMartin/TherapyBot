@@ -69,6 +69,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "timezone",
             "reminders_enabled",
             "reminder_time",
+            "note_format",
         )
 
     def validate_email(self, value):
@@ -275,7 +276,8 @@ class PlanSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         steps = validated_data.pop("steps")
-        plan = Plan.objects.create(user=self.context["request"].user, **validated_data)
+        validated_data.setdefault("user", self.context["request"].user)
+        plan = Plan.objects.create(**validated_data)
         self._save_steps(plan, steps)
         return plan
 

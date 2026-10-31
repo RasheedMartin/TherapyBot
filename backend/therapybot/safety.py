@@ -78,6 +78,11 @@ def is_crisis_message(text: str) -> bool:
     return bool(_CRISIS_RE.search(text))
 
 
+def mentions_risk(text: str) -> bool:
+    """Any first-person crisis statement or mention of suicide, self-harm or overdose."""
+    return bool(_CRISIS_RE.search(text) or _RISK_TOPIC_RE.search(text))
+
+
 def assess_risk(question: str, history=None, details: dict | None = None) -> str:
     """
     'none' | 'elevated' | 'imminent'. Keywords set a floor the model can only raise: first-person intent is

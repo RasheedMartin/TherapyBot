@@ -82,6 +82,12 @@ class SavedProvider(models.Model):
 
 class Plan(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="plans")
+    # Homework: a plan a therapist assigned. It appears in the client's Plans like any other; check-ins
+    # flow back to the therapist only if the client shares them.
+    client = models.ForeignKey("Client", on_delete=models.SET_NULL, null=True, blank=True, related_name="homework")
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
     title = models.CharField(max_length=120)
     summary = models.TextField(max_length=1000, blank=True)
     conversation = models.ForeignKey(

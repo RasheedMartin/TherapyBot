@@ -31,6 +31,7 @@ class Profile(models.Model):
     npi_status = models.CharField(max_length=12, choices=NpiStatus.choices, blank=True, default=NpiStatus.NONE)
     npi_verified_at = models.DateTimeField(null=True, blank=True)
     npi_details = models.JSONField(default=dict, blank=True)  # name/taxonomy as listed in the registry
+    note_format = models.CharField(max_length=4, choices=[("soap", "SOAP"), ("dap", "DAP")], default="soap")
     display_name = models.CharField(max_length=80, blank=True)
     goals = models.TextField(max_length=1000, blank=True)
     zip_code = models.CharField(max_length=10, blank=True)

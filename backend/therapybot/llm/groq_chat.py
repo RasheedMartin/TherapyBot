@@ -24,9 +24,10 @@ class GroqChatModel:
     def _payload(self, messages: list[ChatMessage]) -> list[dict]:
         return [{"role": m.role, "content": m.content} for m in messages]
 
-    def complete(self, messages: list[ChatMessage]) -> str:
+    def complete(self, messages: list[ChatMessage], *, json_mode: bool = False) -> str:
+        extra = {"response_format": {"type": "json_object"}} if json_mode else {}
         response = self._client.chat.completions.create(
-            model=self.model, messages=self._payload(messages), **self._params
+            model=self.model, messages=self._payload(messages), **self._params, **extra
         )
         return (response.choices[0].message.content or "").strip()
 

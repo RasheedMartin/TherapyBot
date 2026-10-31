@@ -26,7 +26,9 @@ def assistant(content: str) -> ChatMessage:
 class ChatModel(Protocol):
     """A chat completion model. Implementations must return only the answer, never hidden reasoning."""
 
-    def complete(self, messages: list[ChatMessage]) -> str: ...
+    def complete(self, messages: list[ChatMessage], *, json_mode: bool = False) -> str:
+        """json_mode asks the provider to guarantee syntactically valid JSON output."""
+        ...
 
     def stream(self, messages: list[ChatMessage]) -> Iterator[str]: ...
 
