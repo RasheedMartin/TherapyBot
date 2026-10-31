@@ -14,12 +14,14 @@ SNIPPET_CHARS = 220
 DOC_TYPE_LABELS = dict(ClinicalDocument.DocType.choices)
 MARKER_RE = re.compile(r"\[S(\d+)\]")
 _BRACKETS = str.maketrans({"【": "[", "】": "]", "［": "[", "］": "]", "〔": "[", "〕": "]"})
+# Models use narrow/no-break spaces (e.g. "GAD‑7\u202f9"); some fonts render them with ~no width
+_ODD_SPACES = str.maketrans({"\u202f": " ", "\u00a0": " ", "\u2009": " ", "\u2007": " "})
 _GROUPED_RE = re.compile(r"\[\s*(S\d+(?:\s*[,;]\s*S\d+)+)\s*\]")
 
 
 def normalize_markers(text: str) -> str:
     """Models sometimes write 【S1】 or [S1, S2]; rewrite those as [S1] / [S1][S2] before validating."""
-    text = (text or "").translate(_BRACKETS)
+    text = (text or "").translate(_BRACKETS).translate(_ODD_SPACES)
     text = _GROUPED_RE.sub(lambda m: "".join(f"[{p.strip()}]" for p in re.split(r"[,;]", m.group(1))), text)
     return re.sub(r"\[\s*S\s*(\d+)\s*\]", r"[S\1]", text)
 
@@ -76,7 +78,7 @@ def validate_items(items, sources: list[Source]) -> tuple[list[dict], int]:
         if not labels:
             dropped += 1
             continue
-        kept.append({"text": str(item["text"]).strip(), "sources": labels})
+        kept.append({"text": str(item["text"]).translate(_ODD_SPACES).strip(), "sources": labels})
     return kept, dropped
 
 

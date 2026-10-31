@@ -25,6 +25,7 @@ import api, { getErrorMessage, getFieldErrors } from "../api/client";
 import type { Profile, SessionFormat } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { ReminderSettings } from "../components/plans/ReminderSettings";
+import { CareTeamSection } from "../components/CareTeamSection";
 
 type ProfileForm = Omit<Profile, "username" | "date_joined">;
 
@@ -316,6 +317,9 @@ export const ProfilePage = () => {
             </Box>
           </Stack>
           <ProfileDetails profile={profile} onSaved={() => setToast("Profile saved")} />
+          <Section title="Care team" description="Therapists you're connected with, and what each can see.">
+            <CareTeamSection />
+          </Section>
           <Section title="Reminders" description="A short daily email with your plan steps.">
             <ReminderSettings />
           </Section>

@@ -244,6 +244,7 @@ class MarkerNormalizationTests(APITestCase):
             ("Two facts [S1, S2].", "Two facts [S1][S2]."),
             ("Spaced [ S2 ] marker", "Spaced [S2] marker"),
             ("Full-width ［S1］ too", "Full-width [S1] too"),
+            ("GAD\u20117\u202f9 [S1]", "GAD\u20117 9 [S1]"),
         ]:
             with self.subTest(raw=raw):
                 text, cited = validate_text(raw, sources)

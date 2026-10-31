@@ -4,6 +4,8 @@ export interface User {
   email: string;
   email_verified: boolean;
   display_name: string;
+  role: "client" | "therapist";
+  npi_status: "" | "verified" | "needs_review" | "rejected";
   date_joined: string;
 }
 
@@ -22,6 +24,7 @@ export interface Profile {
   timezone: string;
   reminders_enabled: boolean;
   reminder_time: string; // "HH:MM:SS"
+  note_format: "soap" | "dap";
 }
 
 export interface Conversation {
@@ -175,4 +178,195 @@ export interface SessionNoteSummary {
 export interface SessionNote extends SessionNoteSummary {
   original_text: string;
   explanation: NoteExplanation;
+}
+
+// --- Therapist practice --------------------------------------------------------
+
+export interface RelationshipSummary {
+  id: number;
+  status: "invited" | "active" | "ended";
+  invited_at: string;
+  consented_at: string | null;
+  ended_at: string | null;
+  share_checkins: boolean;
+  share_chat_summaries: boolean;
+  share_raw_chat: boolean;
+}
+
+export interface PracticeClient {
+  id: number;
+  display_name: string;
+  email: string;
+  has_account: boolean;
+  created_at: string;
+  relationship: RelationshipSummary | null;
+}
+
+export type DocType = "client_upload" | "progress_note" | "transcript" | "intake" | "other";
+
+export interface DocumentSummary {
+  id: number;
+  title: string;
+  doc_type: DocType;
+  status: "draft" | "final";
+  session: number | null;
+  session_date: string | null;
+  signed_at: string | null;
+  created_at: string;
+}
+
+export interface ClinicalDocument extends DocumentSummary {
+  text: string;
+  author_name: string;
+  signed_by_name: string;
+  amends: number | null;
+  editable: boolean;
+  updated_at: string;
+}
+
+export type Modality = "cbt" | "dbt" | "act" | "integrative";
+
+export const MODALITIES: { value: Modality; label: string }[] = [
+  { value: "cbt", label: "CBT" },
+  { value: "dbt", label: "DBT" },
+  { value: "act", label: "ACT" },
+  { value: "integrative", label: "Integrative / other" },
+];
+
+export interface SessionWithDocuments {
+  id: number;
+  date: string;
+  modality: Modality;
+  status: "scheduled" | "completed" | "cancelled";
+  documents: DocumentSummary[];
+}
+
+export interface Timeline {
+  sessions: SessionWithDocuments[];
+  other_documents: DocumentSummary[];
+}
+
+export interface Citation {
+  label: string;
+  document_id: number | null;
+  session_id: number | null;
+  session_date: string | null;
+  doc_type: DocType;
+  snippet: string;
+}
+
+export interface CitedItem {
+  text: string;
+  sources: string[];
+}
+
+export interface ScreeningTrend {
+  instrument: string;
+  latest_total: number;
+  latest_severity: string;
+  latest_date: string;
+  previous_total: number | null;
+  previous_date: string | null;
+  change: number | null;
+  max_total: number;
+}
+
+export interface ClientFacts {
+  sessions_completed: number;
+  last_session_date: string | null;
+  last_session_modality: string | null;
+  next_session_date: string | null;
+  draft_notes: number;
+  client_shares_checkins: boolean;
+  homework: { plan: string; step: string; frequency: string; done_last_14_days?: number; due_last_14_days?: number }[];
+  screenings: ScreeningTrend[];
+  open_risk_flags: number;
+}
+
+export interface SessionPrep {
+  facts: ClientFacts;
+  summary: string;
+  last_session: CitedItem[];
+  open_threads: CitedItem[];
+  suggested_focus: CitedItem[];
+  sources: Citation[];
+  dropped_claims: number;
+}
+
+export interface RecordAnswer {
+  answer: string;
+  sources: Citation[];
+}
+
+export interface TreatmentObjective {
+  text: string;
+  measure: string;
+  interventions: string[];
+}
+
+export interface TreatmentGoal {
+  text: string;
+  evidence: Citation[];
+  objectives: TreatmentObjective[];
+}
+
+export interface TreatmentPlan {
+  id: number;
+  modality: Modality;
+  status: "draft" | "active" | "archived";
+  problem_summary: string;
+  ai_generated: boolean;
+  signed_at: string | null;
+  goals: TreatmentGoal[];
+  created_at: string;
+}
+
+export interface Screening {
+  id: number;
+  instrument: "phq9" | "gad7";
+  responses: number[];
+  total: number;
+  severity: string;
+  administered_on: string;
+  source: "clinician" | "self_report";
+}
+
+export interface Instrument {
+  key: "phq9" | "gad7";
+  name: string;
+  prompt: string;
+  items: string[];
+  options: { value: number; label: string }[];
+  max_total: number;
+}
+
+export interface RiskFlag {
+  id: number;
+  client_id: number;
+  client_name: string;
+  level: "elevated" | "imminent";
+  source_type: "screening" | "chat";
+  reason: string;
+  created_at: string;
+  acknowledged_at: string | null;
+}
+
+export interface CareTeamMember {
+  id: number;
+  therapist_name: string;
+  practice_name: string;
+  status: "active" | "ended";
+  consented_at: string | null;
+  ended_at: string | null;
+  share_checkins: boolean;
+  share_chat_summaries: boolean;
+  share_raw_chat: boolean;
+}
+
+export interface InvitePreview {
+  therapist_name: string;
+  practice_name: string;
+  invited_email: string;
+  always_shared: string;
+  defaults: { share_checkins: boolean; share_chat_summaries: boolean; share_raw_chat: boolean };
 }

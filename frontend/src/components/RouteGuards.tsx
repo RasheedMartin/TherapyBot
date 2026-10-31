@@ -70,6 +70,33 @@ export const RequireAuth = ({ children, verified = false }: { children: React.Re
   return <>{children}</>;
 };
 
+/** Therapist area: signed in, email verified, therapist role, and NPI verified (or a clear status if not). */
+export const RequireTherapist = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  return (
+    <RequireAuth verified>
+      {user && user.role !== "therapist" ? (
+        <Navigate to="/" replace />
+      ) : user && user.npi_status !== "verified" ? (
+        <Box sx={{ flex: 1, display: "grid", placeItems: "center", px: 2, py: 6 }}>
+          <Paper variant="outlined" sx={{ p: { xs: 3, sm: 5 }, maxWidth: 520, borderRadius: 4, textAlign: "center" }}>
+            <Typography variant="h5" component="h1" gutterBottom>
+              {user.npi_status === "rejected" ? "We couldn't verify your NPI" : "We're verifying your NPI"}
+            </Typography>
+            <Typography color="text.secondary">
+              {user.npi_status === "rejected"
+                ? "Contact support and we'll help sort it out."
+                : "We couldn't match it automatically with the NPI Registry, so a person is reviewing it. You'll be able to add clients as soon as it's approved, usually within one business day."}
+            </Typography>
+          </Paper>
+        </Box>
+      ) : (
+        children
+      )}
+    </RequireAuth>
+  );
+};
+
 /** Sends signed-in users onward, to `?redirect=` when present (set by RequireAuth). */
 export const RequireGuest = ({ children }: { children: React.ReactNode }) => {
   const { authenticated, loading } = useAuth();

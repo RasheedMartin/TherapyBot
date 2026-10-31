@@ -16,6 +16,7 @@ import {
   ChatBubbleOutline,
   ChecklistRtl,
   DescriptionOutlined,
+  GroupsOutlined,
   Logout,
   PersonOutline,
   PersonSearchOutlined,
@@ -24,12 +25,14 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../context/AuthContext";
 
-const NAV_LINKS = [
+const CLIENT_LINKS = [
   { to: "/chat", label: "Chat", icon: <ChatBubbleOutline /> },
   { to: "/plans", label: "Plans", icon: <ChecklistRtl /> },
   { to: "/notes", label: "Notes", icon: <DescriptionOutlined /> },
   { to: "/find-care", label: "Find care", icon: <PersonSearchOutlined /> },
 ] as const;
+
+const THERAPIST_LINKS = [{ to: "/practice", label: "Clients", icon: <GroupsOutlined /> }] as const;
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -60,7 +63,7 @@ export const Navbar = () => {
 
         {authenticated ? (
           <>
-            {NAV_LINKS.map(({ to, label, icon }) => (
+            {(user?.role === "therapist" ? THERAPIST_LINKS : CLIENT_LINKS).map(({ to, label, icon }) => (
               <Button
                 key={to}
                 component={Link}

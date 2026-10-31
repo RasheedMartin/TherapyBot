@@ -114,6 +114,13 @@ class InviteFlowTests(APITestCase):
         self.assertIsNone(Client.objects.get().user)
         self.assertTrue(AuditEvent.objects.filter(action="relationship.accept", outcome="denied").exists())
 
+    def test_accepting_an_invite_verifies_the_invited_email(self):
+        new_client = self.make_user("sam", "sam@example.com", verified=False)
+        self.login(new_client)
+        self.assertEqual(self.client.post("/api/care-team/accept/", {"t": self.token}).status_code, 200)
+        new_client.profile.refresh_from_db()
+        self.assertIsNotNone(new_client.profile.email_verified_at)
+
     def test_tampered_token_rejected(self):
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(f"/api/care-team/invite/?t={self.token}x").status_code, 400)

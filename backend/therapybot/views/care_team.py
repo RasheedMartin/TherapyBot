@@ -5,11 +5,11 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from therapybot import audit, invites
-from therapybot.models import CareRelationship, Client
+from therapybot.models import CareRelationship, Client, Profile
 from therapybot.serializers import CareTeamSerializer, therapist_display_name
 from therapybot.views.common import VERIFIED, AuthThrottle
 
@@ -38,10 +38,14 @@ def invite_preview(request):
 
 
 @api_view(["POST"])
-@permission_classes(VERIFIED)
+@permission_classes([IsAuthenticated])
 @throttle_classes([AuthThrottle])
 def accept_invite(request):
-    """Link the signed-in client to the therapist, with the sharing choices they made."""
+    """
+    Link the signed-in client to the therapist, with the sharing choices they made. The invite was emailed
+    to this address and the account's email must match, so accepting also verifies the email: a new
+    client doesn't have to wait for a second email before connecting.
+    """
     relationship = invites.read_invite_token(request.data.get("t") or "")
     if relationship is None:
         return Response({"detail": "This invitation is invalid, expired, or already used."}, status=400)
@@ -58,6 +62,10 @@ def accept_invite(request):
         return Response({"detail": "You can't accept your own invitation."}, status=status.HTTP_400_BAD_REQUEST)
 
     with transaction.atomic():
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if not profile.email_verified_at:
+            profile.email_verified_at = timezone.now()
+            profile.save(update_fields=["email_verified_at"])
         # If this person is already a client of the practice under another record, keep a single record:
         # move the relationship onto it first, then drop the now-empty placeholder.
         existing = Client.objects.filter(practice=client.practice, user=request.user).exclude(pk=client.pk).first()

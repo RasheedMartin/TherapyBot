@@ -28,13 +28,15 @@ interface PlanEditorProps {
   /** An existing plan to edit, or a draft (e.g. from the AI) to review before saving. */
   initial: Plan | PlanDraft | null;
   heading?: string;
+  /** Where new plans are created; therapists assign homework at the client's homework endpoint. */
+  createUrl?: string;
   onClose: () => void;
   onSaved: (plan: Plan) => void;
 }
 
 const emptyStep = (): PlanStep => ({ title: "", details: "", frequency: "daily", weekday: null, time_of_day: null });
 
-export const PlanEditor = ({ open, initial, heading, onClose, onSaved }: PlanEditorProps) => {
+export const PlanEditor = ({ open, initial, heading, createUrl = "plans/", onClose, onSaved }: PlanEditorProps) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const queryClient = useQueryClient();
@@ -68,7 +70,7 @@ export const PlanEditor = ({ open, initial, heading, onClose, onSaved }: PlanEdi
             time_of_day: time_of_day || null,
           })),
       };
-      const res = existingId ? await api.put<Plan>(`plans/${existingId}/`, body) : await api.post<Plan>("plans/", body);
+      const res = existingId ? await api.put<Plan>(`plans/${existingId}/`, body) : await api.post<Plan>(createUrl, body);
       return res.data;
     },
     onSuccess: (plan) => {

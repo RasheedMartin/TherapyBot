@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
             tanstack: ["@tanstack/react-router", "@tanstack/react-query"],
             markdown: ["react-markdown"],
             map: ["leaflet", "react-leaflet"],
+            charts: ["@mui/x-charts"],
           },
         },
       },
