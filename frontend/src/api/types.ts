@@ -440,3 +440,13 @@ export interface PracticeOverview {
   open_flags: number;
   active_clients: number;
 }
+
+/** A session as the client sees it, with their therapist's name. */
+export interface ClientSession {
+  id: number;
+  date: string;
+  start_time: string | null;
+  duration_minutes: number;
+  status: "scheduled" | "cancelled";
+  therapist_name: string;
+}

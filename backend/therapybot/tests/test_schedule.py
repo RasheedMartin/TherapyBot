@@ -4,7 +4,7 @@ from datetime import time, timedelta
 
 from django.utils import timezone
 
-from therapybot.models import Profile, Session
+from therapybot.models import CareRelationship, Profile, Session
 from therapybot.tests.helpers import APITestCase
 
 
@@ -131,3 +131,78 @@ class OverviewTests(APITestCase):
 
         self.login(self.make_user("carl", "carl@example.com"))
         self.assertEqual(self.client.get("/api/practice/overview/").status_code, 403)
+
+
+class DraftDeletionTests(APITestCase):
+    def test_only_the_author_deletes_drafts_and_signed_notes_stay(self):
+        from therapybot.models import AuditEvent, ClinicalDocument
+
+        therapist = self.make_therapist()
+        client_record, _ = self.link(therapist, self.make_user())
+        colleague = self.make_therapist("drkim", "drkim@example.com")
+        CareRelationship.objects.create(client=client_record, therapist=colleague, status="active")
+        draft = ClinicalDocument.objects.create(client=client_record, author=therapist, doc_type="progress_note",
+                                                status="draft", title="Draft", text="Work in progress.")
+        signed = ClinicalDocument.objects.create(client=client_record, author=therapist, doc_type="progress_note",
+                                                 status="final", title="Signed", text="Final.")
+        url = lambda d: f"/api/practice/clients/{client_record.pk}/documents/{d.pk}/"
+
+        self.login(colleague)
+        self.assertEqual(self.client.delete(url(draft)).status_code, 403)
+        self.login(therapist)
+        self.assertEqual(self.client.delete(url(signed)).status_code, 409)
+        self.assertEqual(self.client.delete(url(draft)).status_code, 204)
+        self.assertEqual(list(ClinicalDocument.objects.values_list("title", flat=True)), ["Signed"])
+        self.assertTrue(AuditEvent.objects.filter(action="document.delete", outcome="allowed").exists())
+
+
+class ClientSessionTests(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.therapist = self.make_therapist()
+        self.user = self.make_user()
+        self.client_record, self.rel = self.link(self.therapist, self.user)
+        self.day = timezone.localdate() + timedelta(days=3)
+
+    def test_client_sees_upcoming_and_cancelled_sessions_only_from_active_care(self):
+        upcoming = Session.objects.create(client=self.client_record, therapist=self.therapist, date=self.day,
+                                          start_time=time(10, 0), status="scheduled")
+        cancelled = Session.objects.create(client=self.client_record, therapist=self.therapist,
+                                           date=self.day + timedelta(days=7), status="cancelled")
+        Session.objects.create(client=self.client_record, therapist=self.therapist,
+                               date=timezone.localdate() - timedelta(days=7))  # past
+        self.login(self.user)
+        data = self.client.get("/api/care-team/sessions/").data
+        self.assertEqual([(s["id"], s["status"]) for s in data], [(upcoming.pk, "scheduled"), (cancelled.pk, "cancelled")])
+        self.assertEqual(data[0]["therapist_name"], "Dana Lee")
+        self.rel.status = "ended"
+        self.rel.save()
+        self.assertEqual(self.client.get("/api/care-team/sessions/").data, [])
+
+    def test_client_is_emailed_with_a_calendar_file_when_sessions_change(self):
+        from django.core import mail
+
+        self.login(self.therapist)
+        base = f"/api/practice/clients/{self.client_record.pk}/sessions/"
+        res = self.client.post(base, {"date": self.day.isoformat(), "start_time": "10:00", "status": "scheduled",
+                                      "repeat_weeks": 2}, format="json")
+        self.assertTrue(res.data["client_notified"])
+        sent = mail.outbox[-1]
+        self.assertEqual(sent.to, [self.user.email])
+        self.assertNotIn("therap", sent.subject.lower())  # neutral subject: it shows on lock screens
+        self.assertIn("weekly for 3 sessions", sent.body)
+        filename, ics, mimetype = sent.attachments[0]
+        self.assertEqual((filename, mimetype), ("session.ics", "text/calendar"))
+        self.assertEqual(ics.count("BEGIN:VEVENT"), 3)
+
+        url = f"{base}{res.data['id']}/"
+        self.assertTrue(self.client.patch(url, {"start_time": "11:30"}, format="json").data["client_notified"])
+        self.assertIn("moved your session", mail.outbox[-1].body)
+        self.assertTrue(self.client.patch(url, {"status": "cancelled"}, format="json").data["client_notified"])
+        self.assertIn("cancelled", mail.outbox[-1].subject)
+        self.assertIn("STATUS:CANCELLED", mail.outbox[-1].attachments[0][1])
+
+        count = len(mail.outbox)
+        past = (timezone.localdate() - timedelta(days=2)).isoformat()
+        self.client.post(base, {"date": past, "status": "completed"}, format="json")  # recording history: no email
+        self.assertEqual(len(mail.outbox), count)
