@@ -155,7 +155,7 @@ const PlanCard = ({ plan, onEdit }: { plan: Plan; onEdit: () => void }) => {
               <Typography fontWeight={500}>{step.title}</Typography>
               <Typography variant="caption" color="text.secondary">
                 {describeSchedule(step)}
-                {step.details && ` · ${step.details}`}
+                {step.details && `. ${step.details}`}
               </Typography>
             </Box>
             {step.frequency === "once" ? (

@@ -78,7 +78,7 @@ export const ConversationList = ({
           >
             <ListItemText
               primary={c.title || "New conversation"}
-              secondary={`${c.therapy_type} · ${formatDate(c.updated_at)}`}
+              secondary={`${c.therapy_type}, ${formatDate(c.updated_at)}`}
               slotProps={{
                 primary: { noWrap: true, fontWeight: c.id === activeId ? 600 : 500 },
                 secondary: { noWrap: true },

@@ -1,6 +1,5 @@
 import { Avatar, Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import {
-  ArrowForward,
   ChecklistRtl,
   DescriptionOutlined,
   MenuBookOutlined,
@@ -98,7 +97,6 @@ export const MessageBubble = ({ role, content, isCrisis, pending, sources, actio
             size="small"
             variant="contained"
             startIcon={ACTIONS[action].icon}
-            endIcon={<ArrowForward />}
             onClick={() => onAction(action)}
           >
             {ACTIONS[action].label}
@@ -116,7 +114,7 @@ export const MessageBubble = ({ role, content, isCrisis, pending, sources, actio
               size="small"
               variant="outlined"
               icon={<MenuBookOutlined />}
-              label={`Read more: ${s.title} · ${s.source}`}
+              label={`Read more: ${s.title} (${s.source})`}
               sx={{ maxWidth: "100%" }}
             />
           ))}
