@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { Alert, Box, Button, Chip, CircularProgress, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  FormControlLabel,
+  MenuItem,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { AutoAwesomeOutlined, Verified } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api, { getErrorMessage } from "../../api/client";
@@ -22,6 +34,11 @@ export const TreatmentPlanPanel = ({ clientId }: { clientId: number }) => {
   });
   const sign = useMutation({
     mutationFn: (id: number) => api.post(`practice/clients/${clientId}/treatment-plans/${id}/sign/`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+  const share = useMutation({
+    mutationFn: ({ id, value }: { id: number; value: boolean }) =>
+      api.post(`practice/clients/${clientId}/treatment-plans/${id}/share/`, { share: value }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   });
   const current = plans.data?.find((p) => p.status === "draft") ?? plans.data?.find((p) => p.status === "active");
@@ -63,6 +80,27 @@ export const TreatmentPlanPanel = ({ clientId }: { clientId: number }) => {
             <Chip size="small" variant="outlined" label={MODALITIES.find((m) => m.value === current.modality)?.label} />
             {current.ai_generated && <Chip size="small" variant="outlined" label="AI draft" />}
           </Stack>
+          {current.status === "active" && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={current.share_with_client}
+                  disabled={share.isPending}
+                  onChange={(e) => share.mutate({ id: current.id, value: e.target.checked })}
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" fontWeight={600}>Share goals with client</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Their companion uses the goals and objectives to support practice between sessions. The problem
+                    summary and evidence stay private.
+                  </Typography>
+                </Box>
+              }
+              sx={{ alignItems: "flex-start", ml: 0, "& .MuiSwitch-root": { mt: -0.5 } }}
+            />
+          )}
           {current.problem_summary && (
             <Typography color="text.secondary">{current.problem_summary.replace(/\[S\d+\]/g, "")}</Typography>
           )}

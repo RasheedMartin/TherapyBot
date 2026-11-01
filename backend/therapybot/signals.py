@@ -10,6 +10,8 @@ from therapybot.models import ClinicalDocument
 def reindex_document(sender, instance, raw=False, **kwargs):
     if raw:  # loading fixtures
         return
+    if instance.doc_type == ClinicalDocument.DocType.CLIENT_SUMMARY:
+        return  # a client-facing rewording of a note that's already indexed; it would crowd out the source
     from therapybot.rag.indexing import safely_index_document
 
     safely_index_document(instance)

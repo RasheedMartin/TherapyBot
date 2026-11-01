@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from therapybot import audit, invites
-from therapybot.models import CareRelationship, Client, Profile, Session
+from therapybot.models import CareRelationship, Client, ClinicalDocument, Profile, Session
 from therapybot.serializers import CareTeamSerializer, therapist_display_name
 from therapybot.views.common import VERIFIED, AuthThrottle
 
@@ -126,6 +126,26 @@ def my_sessions(request):
         {"id": s.id, "date": s.date, "start_time": s.start_time, "duration_minutes": s.duration_minutes,
          "status": s.status, "therapist_name": therapist_display_name(s.therapist)}
         for s in sessions
+    ])
+
+
+@api_view(["GET"])
+@permission_classes(VERIFIED)
+def my_summaries(request):
+    """Session summaries a therapist currently in the client's care has shared with them, newest first."""
+    summaries = (
+        ClinicalDocument.objects.filter(
+            client__user=request.user, doc_type=ClinicalDocument.DocType.CLIENT_SUMMARY,
+            status=ClinicalDocument.Status.FINAL,
+            client__relationships__therapist=F("author"),
+            client__relationships__status=CareRelationship.Status.ACTIVE,
+        )
+        .select_related("author__profile").distinct().order_by("-signed_at")[:10]
+    )
+    return Response([
+        {"id": d.id, "session_date": d.session_date, "shared_at": d.signed_at, "text": d.text,
+         "therapist_name": therapist_display_name(d.author)}
+        for d in summaries
     ])
 
 

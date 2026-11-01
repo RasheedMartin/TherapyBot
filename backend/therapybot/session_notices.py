@@ -66,3 +66,27 @@ def notify_client(session: Session, kind: str, series: list[Session] | None = No
         logger.exception("Failed to send %s notice for session %s", kind, session.pk)
         return False
     return True
+
+
+def notify_summary_shared(summary) -> bool:
+    """Tell the client their therapist shared a session summary. Content stays in the app, not the email."""
+    from therapybot.serializers import therapist_display_name
+
+    user = summary.client.user
+    if user is None or not user.email:
+        return False
+    therapist = therapist_display_name(summary.author) if summary.author else "Your therapist"
+    message = EmailMessage(
+        subject="You have a new update",
+        body=(
+            f"Hi {user.first_name or user.username},\n\n{therapist} shared a short summary of your session, with what "
+            f"to try before next time.\n\nRead it here: {settings.FRONTEND_URL}\n"
+        ),
+        to=[user.email],
+    )
+    try:
+        message.send()
+    except Exception:
+        logger.exception("Failed to send summary notice for document %s", summary.pk)
+        return False
+    return True

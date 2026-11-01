@@ -14,6 +14,7 @@ from django.utils import timezone
 from therapybot import llm
 from therapybot.models import (
     CareRelationship,
+    ClinicalDocument,
     Client,
     Conversation,
     Message,
@@ -78,7 +79,9 @@ def companion_context(user) -> str:
         lines.append(f"Next session: {upcoming.date:%A %B} {upcoming.date.day}.")
 
     goals = []
-    for plan in TreatmentPlan.objects.filter(client__in=clients, status=TreatmentPlan.Status.ACTIVE).prefetch_related(
+    # Only plans the therapist chose to share: the goals are written in clinical language
+    for plan in TreatmentPlan.objects.filter(client__in=clients, status=TreatmentPlan.Status.ACTIVE,
+                                             share_with_client=True).prefetch_related(
         "goals__objectives"
     ):
         for goal in plan.goals.all()[:3]:
@@ -86,6 +89,17 @@ def companion_context(user) -> str:
             goals.extend(f"  - {o.text}" for o in goal.objectives.all()[:3])
     if goals:
         lines.append("Goals from the treatment plan they and their therapist agreed on:\n" + "\n".join(goals))
+
+    latest = (
+        ClinicalDocument.objects.filter(client__in=clients, doc_type=ClinicalDocument.DocType.CLIENT_SUMMARY,
+                                        status=ClinicalDocument.Status.FINAL)
+        .order_by("-signed_at").first()
+    )
+    if latest:
+        lines.append(
+            "Their therapist's summary of the last session, written for them (reinforce it in your own words; "
+            f"don't contradict it):\n{latest.text[:1500]}"
+        )
 
     sharing = []
     if any(r.share_chat_summaries for r in relationships):

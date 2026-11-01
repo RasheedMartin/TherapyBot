@@ -207,7 +207,7 @@ export interface PracticeClient {
   relationship: RelationshipSummary | null;
 }
 
-export type DocType = "client_upload" | "progress_note" | "transcript" | "intake" | "other";
+export type DocType = "client_upload" | "progress_note" | "transcript" | "intake" | "client_summary" | "other";
 
 export interface DocumentSummary {
   id: number;
@@ -224,7 +224,7 @@ export interface DocumentSummary {
 /** A document suggested by an import, reviewed by the therapist before it's saved. */
 export interface ImportedDocument {
   title: string;
-  doc_type: Exclude<DocType, "client_upload">;
+  doc_type: Exclude<DocType, "client_upload" | "client_summary">;
   session_date: string | null;
   text: string;
 }
@@ -238,6 +238,7 @@ export interface ClinicalDocument extends DocumentSummary {
   author_name: string;
   signed_by_name: string;
   amends: number | null;
+  summary_of: number | null;
   editable: boolean;
   updated_at: string;
 }
@@ -349,6 +350,7 @@ export interface TreatmentPlan {
   problem_summary: string;
   ai_generated: boolean;
   signed_at: string | null;
+  share_with_client: boolean;
   goals: TreatmentGoal[];
   created_at: string;
 }
@@ -450,5 +452,14 @@ export interface ClientSession {
   start_time: string | null;
   duration_minutes: number;
   status: "scheduled" | "cancelled";
+  therapist_name: string;
+}
+
+/** A session summary the therapist wrote for the client and shared. */
+export interface SharedSummary {
+  id: number;
+  session_date: string | null;
+  shared_at: string;
+  text: string;
   therapist_name: string;
 }

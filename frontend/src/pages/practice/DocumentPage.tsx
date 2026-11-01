@@ -43,6 +43,13 @@ export const DocumentPage = () => {
     },
     onSuccess: refresh,
   });
+  const summarize = useMutation({
+    mutationFn: async () => (await api.post<ClinicalDocument>(`${url}client-summary/`)).data,
+    onSuccess: (summary) => {
+      queryClient.invalidateQueries({ queryKey: ["timeline", Number(clientId)] });
+      navigate({ to: "/practice/clients/$clientId/documents/$docId", params: { clientId, docId: String(summary.id) } });
+    },
+  });
   const amend = useMutation({
     mutationFn: async () => (await api.post<ClinicalDocument>(`${url}addendum/`, { text: addendum })).data,
     onSuccess: (created) => {
@@ -54,6 +61,7 @@ export const DocumentPage = () => {
   if (doc.isLoading) return <Box sx={{ display: "grid", placeItems: "center", py: 10 }}><CircularProgress /></Box>;
   if (!doc.data) return <Container sx={{ py: 6 }}><Alert severity="warning">{getErrorMessage(doc.error, "Document not found.")}</Alert></Container>;
   const d = doc.data;
+  const isSummary = d.doc_type === "client_summary";
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 } }}>
@@ -67,7 +75,9 @@ export const DocumentPage = () => {
           color={d.status === "draft" ? "warning" : "primary"}
           label={
             d.status === "draft"
-              ? "Draft: not signed"
+              ? isSummary ? "Draft: not shared yet" : "Draft: not signed"
+              : isSummary
+                ? `Shared with client ${formatDate(d.signed_at)}`
               : d.imported_from
                 ? `Imported from ${d.imported_from}`
                 : `Signed ${formatDate(d.signed_at)} by ${d.signed_by_name}`
@@ -87,16 +97,31 @@ export const DocumentPage = () => {
             <Button color="error" onClick={() => setConfirmingDelete(true)} sx={{ mr: "auto" }}>Delete draft</Button>
             <Button onClick={() => save.mutate()} disabled={save.isPending || text === d.text}>Save draft</Button>
             <Button variant="contained" onClick={() => sign.mutate()} disabled={sign.isPending || !text.trim()}>
-              Sign note
+              {isSummary ? "Share with client" : "Sign note"}
             </Button>
           </Stack>
           <Typography variant="caption" color="text.secondary">
-            Signing locks the note. Later corrections are added as addenda; the original is never changed.
+            {isSummary
+              ? "Written for the client, from your signed note. Once shared, they see it on their home page (and get an email saying there's an update), and their companion uses it between sessions."
+              : "Signing locks the note. Later corrections are added as addenda; the original is never changed."}
           </Typography>
         </Stack>
       ) : (
         <Stack spacing={3}>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{d.text}</Paper>
+          {d.status === "final" && d.doc_type === "progress_note" && (
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+              <Typography variant="subtitle1" fontWeight={600}>Summary for the client</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1.5 }}>
+                A short, plain-language recap of this session (what you worked on, what to try before next time) that
+                you review and edit before sharing. Your clinical assessment isn't included.
+              </Typography>
+              {summarize.isError && <Alert severity="error" sx={{ mb: 1.5 }}>{getErrorMessage(summarize.error)}</Alert>}
+              <Button variant="outlined" onClick={() => summarize.mutate()} disabled={summarize.isPending}>
+                {summarize.isPending ? "Drafting…" : "Draft summary for client"}
+              </Button>
+            </Paper>
+          )}
           {d.status === "final" && d.doc_type === "progress_note" && (
             <Box>
               <Typography variant="subtitle1" fontWeight={600} gutterBottom>Add an addendum</Typography>
