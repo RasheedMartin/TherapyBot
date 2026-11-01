@@ -1,13 +1,14 @@
-"""iCalendar (.ics) rendering for plans, used by both the one-off download and the subscription feed."""
+"""iCalendar (.ics) rendering for plans and therapy sessions, used by the one-off download and the subscription feed."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.utils import timezone
 
-from therapybot.models import PlanStep
+from therapybot.models import PlanStep, Session
 
 ICS_DAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
 DISCREET_TITLE = "Personal check-in"
+DISCREET_SESSION_TITLE = "Appointment"
 RRULES = {
     PlanStep.Frequency.DAILY: "FREQ=DAILY",
     PlanStep.Frequency.WEEKDAYS: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
@@ -73,7 +74,32 @@ def _event(step: PlanStep, stamp: str, today: date, discreet: bool) -> list[str]
     return lines
 
 
-def render_calendar(name: str, steps, discreet: bool = False) -> str:
+def _session_event(session: Session, title: str, stamp: str) -> list[str]:
+    lines = [
+        "BEGIN:VEVENT",
+        f"UID:therapybot-session-{session.pk}@therapybot.app",
+        f"DTSTAMP:{stamp}",
+        f"SUMMARY:{_escape(title)}",
+    ]
+    if session.start_time:
+        start = datetime.combine(session.date, session.start_time)
+        lines += [f"DTSTART:{start:%Y%m%dT%H%M%S}", f"DURATION:PT{session.duration_minutes}M"]
+    else:
+        lines += [f"DTSTART;VALUE=DATE:{session.date:%Y%m%d}",
+                  f"DTEND;VALUE=DATE:{session.date + timedelta(days=1):%Y%m%d}"]
+    if session.status == Session.Status.CANCELLED:
+        lines.append("STATUS:CANCELLED")  # calendars that already have it remove or strike it
+    elif session.status == Session.Status.SCHEDULED and session.start_time:
+        lines += ["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_escape(title)}", "TRIGGER:-PT30M", "END:VALARM"]
+    lines.append("END:VEVENT")
+    return lines
+
+
+def render_calendar(name: str, steps, discreet: bool = False, sessions=()) -> str:
+    """
+    `sessions` is a list of (Session, title) pairs; the caller chooses titles, since what's appropriate
+    differs for therapist and client calendars.
+    """
     """Times are 'floating' (no time zone), so they follow whatever time zone the user's calendar is in."""
     stamp = timezone.now().strftime("%Y%m%dT%H%M%SZ")
     today = timezone.localdate()
@@ -89,5 +115,7 @@ def render_calendar(name: str, steps, discreet: bool = False) -> str:
     ]
     for step in steps:
         lines += _event(step, stamp, today, discreet)
+    for session, title in sessions:
+        lines += _session_event(session, DISCREET_SESSION_TITLE if discreet else title, stamp)
     lines.append("END:VCALENDAR")
     return "\r\n".join(folded for line in lines for folded in _fold(line)) + "\r\n"

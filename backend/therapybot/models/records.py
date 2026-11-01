@@ -22,12 +22,15 @@ class Session(models.Model):
     client = models.ForeignKey("Client", on_delete=models.CASCADE, related_name="sessions")
     therapist = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="sessions")
     date = models.DateField()
+    # Wall-clock time in the therapist's time zone; null for sessions recorded without one (e.g. imports)
+    start_time = models.TimeField(null=True, blank=True)
+    duration_minutes = models.PositiveSmallIntegerField(default=50)
     modality = models.CharField(max_length=12, choices=Modality.choices, default=Modality.INTEGRATIVE)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.COMPLETED)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-date", "-created_at"]
+        ordering = ["-date", "-start_time", "-created_at"]
 
     def __str__(self):
         return f"Session {self.date} ({self.client})"

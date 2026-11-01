@@ -6,7 +6,7 @@ Create a demo practice with a therapist and synthetic clients. Everything here i
     python manage.py seed_demo --force --password "$DEMO_PASSWORD"   # a deployed demo: never the default password
 """
 
-from datetime import timedelta
+from datetime import time, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -143,7 +143,8 @@ class Command(BaseCommand):
         therapist = self._user("demo_therapist", "Avery Morgan", role="therapist")
         PracticeMembership.objects.create(practice=practice, user=therapist, role="owner")
         today = timezone.localdate()
-        for spec in CLIENTS:
+        for slot, spec in enumerate(CLIENTS):
+            session_time = time(10 + 2 * slot, 0)  # each client has a regular weekly slot: 10am, noon, 2pm
             user = self._user(spec["username"], spec["name"])
             client = Client.objects.create(practice=practice, display_name=spec["name"], email=user.email,
                                            user=user, created_by=therapist)
@@ -168,14 +169,15 @@ class Command(BaseCommand):
                                          entered_by=therapist)
             for i, text in enumerate(spec["notes"]):
                 date = session_dates[i]
-                session = Session.objects.create(client=client, therapist=therapist, date=date, modality=spec["modality"])
+                session = Session.objects.create(client=client, therapist=therapist, date=date, modality=spec["modality"],
+                                                 start_time=session_time)
                 ClinicalDocument.objects.create(
                     client=client, author=therapist, session=session, session_date=date, doc_type="progress_note",
                     status="final", signed_at=timezone.now(), signed_by=therapist,
                     title=f"Progress note {date:%b %d}", text=text,
                 )
             Session.objects.create(client=client, therapist=therapist, date=today + timedelta(days=2),
-                                   modality=spec["modality"], status="scheduled")
+                                   start_time=session_time, modality=spec["modality"], status="scheduled")
             plan = Plan.objects.create(user=user, client=client, assigned_by=therapist, title="Homework")
             for step_title, frequency in spec["homework"]:
                 step = plan.steps.create(title=step_title, frequency=frequency)

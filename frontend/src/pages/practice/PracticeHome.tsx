@@ -27,6 +27,7 @@ import api, { getErrorMessage, getFieldErrors } from "../../api/client";
 import type { PracticeClient, RiskFlag } from "../../api/types";
 import { formatDate } from "../../components/practice/format";
 import { SyntheticDataBanner } from "../../components/practice/SyntheticDataBanner";
+import { WeekSchedule } from "../../components/practice/WeekSchedule";
 import { useAuth } from "../../context/AuthContext";
 
 const InviteClientDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
@@ -145,6 +146,7 @@ export const PracticeHome = () => {
       </Stack>
       <Stack spacing={3}>
         <SyntheticDataBanner />
+        <WeekSchedule />
         <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "3fr 2fr" }, alignItems: "start" }}>
           <Paper variant="outlined" sx={{ borderRadius: 4, overflow: "hidden" }}>
             {clients.isLoading && <Box p={2}><Skeleton height={56} /><Skeleton height={56} /></Box>}

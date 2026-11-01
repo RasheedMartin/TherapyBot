@@ -29,16 +29,16 @@ import api, { getErrorMessage } from "../../api/client";
 import {
   MODALITIES,
   type ClinicalDocument,
-  type Modality,
   type Plan,
   type PracticeClient,
   type Profile,
   type Timeline,
 } from "../../api/types";
 import { AskPanel, Panel, PrepPanel } from "../../components/practice/AssistantPanels";
-import { formatDate } from "../../components/practice/format";
+import { formatDate, formatTime } from "../../components/practice/format";
 import { BetweenSessionsPanel } from "../../components/practice/BetweenSessionsPanel";
 import { ImportRecordsDialog } from "../../components/practice/ImportRecordsDialog";
+import { ScheduleSessionDialog } from "../../components/practice/ScheduleSessionDialog";
 import { ScreeningsPanel } from "../../components/practice/ScreeningsPanel";
 import { SyntheticDataBanner } from "../../components/practice/SyntheticDataBanner";
 import { TreatmentPlanPanel } from "../../components/practice/TreatmentPlanPanel";
@@ -131,39 +131,6 @@ const DraftFromTranscriptDialog = ({ clientId, sessions, open, onClose }: {
             {draft.isPending ? "Drafting…" : "Draft note"}
           </Button>
         )}
-      </DialogActions>
-    </Dialog>
-  );
-};
-
-const NewSessionDialog = ({ clientId, open, onClose }: { clientId: number; open: boolean; onClose: () => void }) => {
-  const queryClient = useQueryClient();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [modality, setModality] = useState<Modality>("cbt");
-  const [status, setStatus] = useState("completed");
-  const create = useMutation({
-    mutationFn: () => api.post(`practice/clients/${clientId}/sessions/`, { date, modality, status }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["timeline", clientId] }); onClose(); },
-  });
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Add a session</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} mt={1}>
-          <TextField type="date" label="Date" value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} />
-          <TextField select label="Modality" value={modality} onChange={(e) => setModality(e.target.value as Modality)}>
-            {MODALITIES.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
-          </TextField>
-          <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <MenuItem value="completed">Completed</MenuItem>
-            <MenuItem value="scheduled">Scheduled</MenuItem>
-            <MenuItem value="cancelled">Cancelled</MenuItem>
-          </TextField>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={() => create.mutate()} disabled={create.isPending}>Add</Button>
       </DialogActions>
     </Dialog>
   );
@@ -282,7 +249,7 @@ export const ClientDetail = () => {
                   {timeline.data?.sessions.map((s) => (
                     <Box key={s.id} sx={{ mb: 1.5 }}>
                       <Typography variant="subtitle2">
-                        {formatDate(s.date)} · {MODALITIES.find((m) => m.value === s.modality)?.label}
+                        {formatDate(s.date)}{s.start_time && `, ${formatTime(s.start_time)}`} · {MODALITIES.find((m) => m.value === s.modality)?.label}
                         {s.status !== "completed" && <Chip size="small" label={s.status} sx={{ ml: 1, height: 20 }} />}
                       </Typography>
                       {s.documents.map((d) => (
@@ -319,7 +286,7 @@ export const ClientDetail = () => {
                                    open={drafting} onClose={() => setDrafting(false)} />
       )}
       <ImportRecordsDialog clientId={id} open={importing} onClose={() => setImporting(false)} />
-      <NewSessionDialog clientId={id} open={addingSession} onClose={() => setAddingSession(false)} />
+      {addingSession && <ScheduleSessionDialog clientId={id} open onClose={() => setAddingSession(false)} />}
     </Container>
   );
 };
