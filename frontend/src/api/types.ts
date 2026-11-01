@@ -419,3 +419,24 @@ export interface BetweenSessions {
   conversations: SharedConversation[];
   chat_flags: number;
 }
+
+export interface DraftSummary {
+  id: number;
+  client_id: number;
+  client_name: string;
+  title: string;
+  session_date: string | null;
+  updated_at: string;
+}
+
+/** The therapist's day: today's sessions and what needs attention across clients in their care. */
+export interface PracticeOverview {
+  today: ScheduledSession[];
+  to_close: ScheduledSession[];
+  needs_note: ScheduledSession[];
+  drafts: DraftSummary[];
+  recently_signed: DraftSummary[];
+  unscheduled: { id: number; display_name: string }[];
+  open_flags: number;
+  active_clients: number;
+}

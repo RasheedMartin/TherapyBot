@@ -18,6 +18,7 @@ from therapybot.views.clinical import (
     between_sessions_view,
     import_preview,
     import_records,
+    overview,
     schedule,
     session_detail,
     ask,

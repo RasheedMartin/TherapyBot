@@ -176,8 +176,12 @@ class Command(BaseCommand):
                     status="final", signed_at=timezone.now(), signed_by=therapist,
                     title=f"Progress note {date:%b %d}", text=text,
                 )
-            Session.objects.create(client=client, therapist=therapist, date=today + timedelta(days=2),
+            # A realistic day for the demo therapist: two clients today, one later this week
+            Session.objects.create(client=client, therapist=therapist, date=today + timedelta(days=0 if slot < 2 else 2),
                                    start_time=session_time, modality=spec["modality"], status="scheduled")
+            if slot == 2:  # yesterday's session, not written up yet (shows under "Needs attention")
+                Session.objects.create(client=client, therapist=therapist, date=today - timedelta(days=1),
+                                       start_time=session_time, modality=spec["modality"])
             plan = Plan.objects.create(user=user, client=client, assigned_by=therapist, title="Homework")
             for step_title, frequency in spec["homework"]:
                 step = plan.steps.create(title=step_title, frequency=frequency)

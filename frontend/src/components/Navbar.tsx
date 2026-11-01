@@ -13,10 +13,12 @@ import {
   Typography,
 } from "@mui/material";
 import {
+  CalendarMonthOutlined,
   ChatBubbleOutline,
   ChecklistRtl,
   DescriptionOutlined,
   GroupsOutlined,
+  HomeOutlined,
   Logout,
   PersonOutline,
   PersonSearchOutlined,
@@ -27,14 +29,21 @@ import { useReturnHere } from "./returnTo";
 import { LinkButton } from "./RouterLink";
 import { useAuth } from "../context/AuthContext";
 
+// "Home" matches only its own page; the others stay highlighted on the pages beneath them
 const CLIENT_LINKS = [
+  { to: "/", label: "Home", icon: <HomeOutlined />, exact: true },
   { to: "/chat", label: "Chat", icon: <ChatBubbleOutline /> },
   { to: "/plans", label: "Plans", icon: <ChecklistRtl /> },
   { to: "/notes", label: "Notes", icon: <DescriptionOutlined /> },
   { to: "/find-care", label: "Find care", icon: <PersonSearchOutlined /> },
 ] as const;
 
-const THERAPIST_LINKS = [{ to: "/practice", label: "Clients", icon: <GroupsOutlined /> }] as const;
+const THERAPIST_LINKS = [
+  { to: "/practice", label: "Home", icon: <HomeOutlined />, exact: true },
+  { to: "/practice/schedule", label: "Schedule", icon: <CalendarMonthOutlined /> },
+  { to: "/practice/clients", label: "Clients", icon: <GroupsOutlined /> },
+  { to: "/practice/notes", label: "Notes", icon: <DescriptionOutlined /> },
+];
 
 export const Navbar = () => {
   const returnHere = useReturnHere();
@@ -66,13 +75,14 @@ export const Navbar = () => {
 
         {authenticated ? (
           <>
-            {(user?.role === "therapist" ? THERAPIST_LINKS : CLIENT_LINKS).map(({ to, label, icon }) => (
+            {(user?.role === "therapist" ? THERAPIST_LINKS : CLIENT_LINKS).map((link) => ({ ...link, exact: "exact" in link && link.exact })).map(({ to, label, icon, exact }) => (
               <Button
                 key={to}
                 component={Link}
                 to={to}
                 color="inherit"
-                activeProps={{ style: { fontWeight: 700 } }}
+                activeOptions={{ exact: !!exact }}
+                activeProps={{ style: { fontWeight: 700 }, "aria-current": "page" }}
                 sx={{ minWidth: 0, px: { xs: 1, sm: 2 } }}
                 aria-label={label}
               >
