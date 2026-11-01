@@ -15,7 +15,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 
-from therapybot import audit, between_sessions
+from therapybot import audit, between_sessions, session_notices
 from therapybot.clinical import assistant, importing
 from therapybot.documents import UnreadableFile, extract_text
 from therapybot.models import CareRelationship, Client, ClinicalDocument, Plan, RiskFlag, Session, TreatmentPlan
@@ -103,7 +103,11 @@ def create_session(request, pk):
                 status=Session.Status.SCHEDULED,
             )
     audit.record(request.user, "session.create", request=request, client=client, obj=session, repeat_weeks=repeat)
-    return Response({**SessionSerializer(session).data, "created": repeat + 1}, status=status.HTTP_201_CREATED)
+    notified = False
+    if session.status == Session.Status.SCHEDULED and session.date >= timezone.localdate():
+        notified = session_notices.notify_client(session, "scheduled", series=repeat + 1)
+    return Response({**SessionSerializer(session).data, "created": repeat + 1, "client_notified": notified},
+                    status=status.HTTP_201_CREATED)
 
 
 @api_view(["PATCH"])
@@ -112,12 +116,20 @@ def session_detail(request, pk, session_id):
     """Reschedule a session, or mark it completed or cancelled."""
     client = authorize_client(request.user, pk, "session.edit", request=request)
     session = _session(client, session_id)
+    before = (session.date, session.start_time, session.status)
     serializer = SessionSerializer(session, data=request.data, partial=True)
     serializer.is_valid(raise_exception=True)
     session = serializer.save()
     audit.record(request.user, "session.edit", request=request, client=client, obj=session,
                  fields=sorted(serializer.validated_data))
-    return Response(SessionSerializer(session).data)
+    # Tell the client about changes to sessions still ahead of them
+    notified = False
+    if session.date >= timezone.localdate():
+        if session.status == Session.Status.CANCELLED and before[2] != Session.Status.CANCELLED:
+            notified = session_notices.notify_client(session, "cancelled")
+        elif session.status == Session.Status.SCHEDULED and (session.date, session.start_time) != before[:2]:
+            notified = session_notices.notify_client(session, "rescheduled")
+    return Response({**SessionSerializer(session).data, "client_notified": notified})
 
 
 NOTES_WINDOW_DAYS = 14
@@ -219,17 +231,26 @@ def create_document(request, pk):
     return Response(ClinicalDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
 
-@api_view(["GET", "PATCH"])
+@api_view(["GET", "PATCH", "DELETE"])
 @permission_classes(THERAPIST)
 def document_detail(request, pk, doc_id):
-    client = authorize_client(request.user, pk, "document.view" if request.method == "GET" else "document.edit",
-                              request=request)
+    purpose = {"GET": "document.view", "DELETE": "document.delete"}.get(request.method, "document.edit")
+    client = authorize_client(request.user, pk, purpose, request=request)
     doc = _document(client, doc_id)
     if request.method == "GET":
         return Response(ClinicalDocumentSerializer(doc).data)
     if doc.status != ClinicalDocument.Status.DRAFT or doc.client_id != client.pk:
-        return Response({"detail": "Signed documents can't be edited. Add an addendum instead."},
+        verb = "deleted" if request.method == "DELETE" else "edited"
+        return Response({"detail": f"Signed documents can't be {verb}. Add an addendum instead."},
                         status=status.HTTP_409_CONFLICT)
+    if request.method == "DELETE":
+        # Only the author discards a draft; it was never part of the signed record
+        if doc.author_id != request.user.pk:
+            return Response({"detail": "Only the therapist who wrote this draft can delete it."},
+                            status=status.HTTP_403_FORBIDDEN)
+        audit.record(request.user, "document.delete", request=request, client=client, obj=doc)
+        doc.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     serializer = ClinicalDocumentSerializer(doc, data=request.data, partial=True)
     serializer.is_valid(raise_exception=True)
     doc = serializer.save(session=_session(client, request.data["session"]) if "session" in request.data

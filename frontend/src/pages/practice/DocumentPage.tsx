@@ -1,5 +1,21 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, Chip, CircularProgress, Container, Paper, Stack, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { ArrowBack } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -23,6 +39,16 @@ export const DocumentPage = () => {
     queryClient.setQueryData(["document", Number(clientId), Number(docId)], updated);
     queryClient.invalidateQueries({ queryKey: ["timeline", Number(clientId)] });
   };
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const discard = useMutation({
+    mutationFn: () => api.delete(url),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ["document", Number(clientId), Number(docId)] });
+      queryClient.invalidateQueries({ queryKey: ["timeline", Number(clientId)] });
+      queryClient.invalidateQueries({ queryKey: ["practice-overview"] });
+      navigate({ to: "/practice/clients/$clientId", params: { clientId } });
+    },
+  });
   const save = useMutation({ mutationFn: async () => (await api.patch<ClinicalDocument>(url, { text })).data, onSuccess: refresh });
   const sign = useMutation({
     mutationFn: async () => {
@@ -70,8 +96,11 @@ export const DocumentPage = () => {
         <Stack spacing={2}>
           <TextField multiline minRows={14} value={text} onChange={(e) => setText(e.target.value)}
                      inputProps={{ style: { fontFamily: "inherit", lineHeight: 1.7 } }} />
-          {(save.isError || sign.isError) && <Alert severity="error">{getErrorMessage(save.error ?? sign.error)}</Alert>}
+          {(save.isError || sign.isError || discard.isError) && (
+            <Alert severity="error">{getErrorMessage(save.error ?? sign.error ?? discard.error)}</Alert>
+          )}
           <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+            <Button color="error" onClick={() => setConfirmingDelete(true)} sx={{ mr: "auto" }}>Delete draft</Button>
             <Button onClick={() => save.mutate()} disabled={save.isPending || text === d.text}>Save draft</Button>
             <Button variant="contained" onClick={() => sign.mutate()} disabled={sign.isPending || !text.trim()}>
               Sign note
@@ -96,6 +125,21 @@ export const DocumentPage = () => {
           )}
         </Stack>
       )}
+      <Dialog open={confirmingDelete} onClose={() => setConfirmingDelete(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete this draft?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            “{d.title}” will be deleted for good. It was never signed, so nothing in the client's signed record
+            changes.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmingDelete(false)}>Keep it</Button>
+          <Button color="error" variant="contained" disabled={discard.isPending} onClick={() => discard.mutate()}>
+            Delete draft
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

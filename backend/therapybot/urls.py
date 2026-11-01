@@ -72,6 +72,7 @@ urlpatterns = [
     path("screenings/mine/", views.my_screenings, name="my-screenings"),
     # Clients: their care team
     path("care-team/", views.care_team, name="care-team"),
+    path("care-team/sessions/", views.my_sessions, name="care-team-sessions"),
     path("care-team/invite/", views.invite_preview, name="care-team-invite-preview"),
     path("care-team/accept/", views.accept_invite, name="care-team-accept"),
     path("care-team/<int:pk>/", views.update_sharing, name="care-team-update"),
