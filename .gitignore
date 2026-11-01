@@ -381,3 +381,8 @@ backend/staticfiles/
 .pyc
 # Local embedding model cache
 .fastembed_cache/
+
+# Claude Code tool output (Playwright MCP snapshots)
+.playwright-mcp/
+# Pre-pgvector local search index; no longer used
+backend/storage/
