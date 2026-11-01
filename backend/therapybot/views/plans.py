@@ -150,12 +150,16 @@ def _feed_urls(request, profile):
     # The configured public API address (api.therapybot.app), not whichever host served this request
     https_url = f"{settings.API_BASE_URL}/api/calendar/{profile.calendar_token}.ics"
     webcal_url = "webcal://" + https_url.split("://", 1)[1]
+    name = "TherapyBot sessions" if profile.role == Profile.Role.THERAPIST else "TherapyBot"
     return {
         "enabled": True,
         "discreet": profile.calendar_discreet,
         "url": https_url,
         "webcal_url": webcal_url,
         "google_url": f"https://calendar.google.com/calendar/render?cid={quote(webcal_url, safe='')}",
+        # Outlook on the web subscribes from a URL in one click (personal and work/school accounts)
+        "outlook_url": f"https://outlook.live.com/calendar/0/addfromweb?url={quote(https_url, safe='')}&name={quote(name)}",
+        "office365_url": f"https://outlook.office.com/calendar/0/addfromweb?url={quote(https_url, safe='')}&name={quote(name)}",
     }
 
 

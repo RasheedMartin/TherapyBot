@@ -6,11 +6,6 @@ import {
   Chip,
   CircularProgress,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   Paper,
   Stack,
   TextField,
@@ -20,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import api, { getErrorMessage } from "../../api/client";
 import type { ClinicalDocument } from "../../api/types";
+import { DeleteDraftDialog } from "../../components/practice/DeleteDraftDialog";
 import { formatDate } from "../../components/practice/format";
 import { LinkButton } from "../../components/RouterLink";
 
@@ -39,15 +35,6 @@ export const DocumentPage = () => {
     queryClient.invalidateQueries({ queryKey: ["timeline", Number(clientId)] });
   };
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const discard = useMutation({
-    mutationFn: () => api.delete(url),
-    onSuccess: () => {
-      queryClient.removeQueries({ queryKey: ["document", Number(clientId), Number(docId)] });
-      queryClient.invalidateQueries({ queryKey: ["timeline", Number(clientId)] });
-      queryClient.invalidateQueries({ queryKey: ["practice-overview"] });
-      navigate({ to: "/practice/clients/$clientId", params: { clientId } });
-    },
-  });
   const save = useMutation({ mutationFn: async () => (await api.patch<ClinicalDocument>(url, { text })).data, onSuccess: refresh });
   const sign = useMutation({
     mutationFn: async () => {
@@ -95,9 +82,7 @@ export const DocumentPage = () => {
         <Stack spacing={2}>
           <TextField multiline minRows={14} value={text} onChange={(e) => setText(e.target.value)}
                      inputProps={{ style: { fontFamily: "inherit", lineHeight: 1.7 } }} />
-          {(save.isError || sign.isError || discard.isError) && (
-            <Alert severity="error">{getErrorMessage(save.error ?? sign.error ?? discard.error)}</Alert>
-          )}
+          {(save.isError || sign.isError) && <Alert severity="error">{getErrorMessage(save.error ?? sign.error)}</Alert>}
           <Stack direction="row" spacing={1.5} justifyContent="flex-end">
             <Button color="error" onClick={() => setConfirmingDelete(true)} sx={{ mr: "auto" }}>Delete draft</Button>
             <Button onClick={() => save.mutate()} disabled={save.isPending || text === d.text}>Save draft</Button>
@@ -124,21 +109,11 @@ export const DocumentPage = () => {
           )}
         </Stack>
       )}
-      <Dialog open={confirmingDelete} onClose={() => setConfirmingDelete(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete this draft?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            “{d.title}” will be deleted for good. It was never signed, so nothing in the client's signed record
-            changes.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmingDelete(false)}>Keep it</Button>
-          <Button color="error" variant="contained" disabled={discard.isPending} onClick={() => discard.mutate()}>
-            Delete draft
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DeleteDraftDialog
+        draft={confirmingDelete ? { id: Number(docId), client_id: Number(clientId), title: d.title } : null}
+        onClose={() => setConfirmingDelete(false)}
+        onDeleted={() => navigate({ to: "/practice/clients/$clientId", params: { clientId } })}
+      />
     </Container>
   );
 };

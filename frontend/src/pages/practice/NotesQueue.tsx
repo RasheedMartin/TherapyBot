@@ -1,8 +1,25 @@
-import { Alert, Box, Button, Container, List, ListItemButton, ListItemText, Paper, Skeleton, Stack, Typography } from "@mui/material";
+import { useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Container,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
+  Paper,
+  Skeleton,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { DeleteOutline } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import api, { getErrorMessage } from "../../api/client";
 import type { DraftSummary, PracticeOverview } from "../../api/types";
+import { DeleteDraftDialog } from "../../components/practice/DeleteDraftDialog";
 import { formatDate } from "../../components/practice/format";
 import { SyntheticDataBanner } from "../../components/practice/SyntheticDataBanner";
 
@@ -23,12 +40,22 @@ export const NotesQueue = () => {
   const o = overview.data;
   const openDoc = (d: DraftSummary) =>
     navigate({ to: "/practice/clients/$clientId/documents/$docId", params: { clientId: String(d.client_id), docId: String(d.id) } });
-  const docList = (docs: DraftSummary[], when: (d: DraftSummary) => string) => (
+  const [deleting, setDeleting] = useState<DraftSummary | null>(null);
+  const docList = (docs: DraftSummary[], when: (d: DraftSummary) => string, deletable = false) => (
     <List disablePadding>
       {docs.map((d) => (
-        <ListItemButton key={d.id} onClick={() => openDoc(d)} sx={{ borderRadius: 2, px: 1.5 }}>
-          <ListItemText primary={`${d.client_name}: ${d.title}`} secondary={when(d)} />
-        </ListItemButton>
+        <Stack key={d.id} direction="row" alignItems="center">
+          <ListItemButton onClick={() => openDoc(d)} sx={{ borderRadius: 2, px: 1.5 }}>
+            <ListItemText primary={`${d.client_name}: ${d.title}`} secondary={when(d)} />
+          </ListItemButton>
+          {deletable && (
+            <Tooltip title="Delete draft">
+              <IconButton size="small" aria-label={`Delete draft ${d.title}`} onClick={() => setDeleting(d)}>
+                <DeleteOutline fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
       ))}
     </List>
   );
@@ -62,7 +89,7 @@ export const NotesQueue = () => {
               </Stack>
             </Section>
             <Section title="To sign" empty={!o.drafts.length && "No drafts waiting."}>
-              {docList(o.drafts, (d) => `Draft, last edited ${formatDate(d.updated_at)}`)}
+              {docList(o.drafts, (d) => `Draft, last edited ${formatDate(d.updated_at)}`, true)}
             </Section>
             <Section title="Recently signed" empty={!o.recently_signed.length && "Notes you sign appear here."}>
               {docList(o.recently_signed, (d) => (d.session_date ? `Session on ${formatDate(d.session_date)}` : "Undated"))}
@@ -70,6 +97,7 @@ export const NotesQueue = () => {
           </>
         )}
       </Stack>
+      <DeleteDraftDialog draft={deleting} onClose={() => setDeleting(null)} />
     </Container>
   );
 };
