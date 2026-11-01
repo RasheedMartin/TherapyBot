@@ -30,12 +30,46 @@ import { PlanEditor } from "../components/plans/PlanEditor";
 
 const SIDEBAR_WIDTH = 300;
 
-const SUGGESTIONS = [
-  "I've been feeling overwhelmed at work lately.",
-  "How can I calm down when I feel anxious?",
-  "I keep arguing with my family and don't know how to stop.",
-  "I can't stop overthinking at night.",
-];
+/** Starter messages for each focus, written the way people actually open up. */
+const SUGGESTIONS: Record<string, string[]> = {
+  "General Therapy": [
+    "I've been feeling overwhelmed at work lately.",
+    "I don't really know what's wrong, I just feel off.",
+    "I keep arguing with my family and don't know how to stop.",
+    "I can't stop overthinking at night.",
+  ],
+  "Cognitive Behavioural Therapy (CBT)": [
+    "I made one small mistake and now I'm sure everyone thinks I'm useless.",
+    "How do I catch a negative thought before it spirals?",
+    "I keep putting things off, then feel terrible about it.",
+    "Can you walk me through a thought record?",
+  ],
+  "Dialectical Behaviour Therapy (DBT)": [
+    "My emotions go from zero to a hundred and I say things I regret.",
+    "I need a way to get through the next hour without making things worse.",
+    "How do I ask for what I need without starting a fight?",
+    "I feel numb and disconnected. How do I get back into my body?",
+  ],
+  "Anxiety Support": [
+    "My heart is racing and I can't calm down.",
+    "I have something coming up that I'm dreading.",
+    "I avoid things because they make me anxious, and it's getting worse.",
+    "I can't stop worrying about things I can't control.",
+  ],
+  "Family Therapy": [
+    "Every conversation with my parent turns into an argument.",
+    "My partner and I keep having the same fight.",
+    "How do I set a boundary with family without feeling guilty?",
+    "Things at home have been tense since a big change.",
+  ],
+  // Accounts are 18+, so this focus is for parents and caregivers of teens
+  "Teen Counseling": [
+    "My teenager barely talks to me anymore.",
+    "How do I know if my teen's mood is normal or something more?",
+    "We keep fighting about screens and school.",
+    "My teen is anxious about school. How can I help?",
+  ],
+};
 
 export const ChatPage = () => {
   const theme = useTheme();
@@ -260,7 +294,7 @@ export const ChatPage = () => {
                     mx: "auto",
                   }}
                 >
-                  {SUGGESTIONS.map((s) => (
+                  {(SUGGESTIONS[therapyType] ?? SUGGESTIONS["General Therapy"]).map((s) => (
                     <Box
                       key={s}
                       component="button"
