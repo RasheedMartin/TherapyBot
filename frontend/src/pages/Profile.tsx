@@ -49,7 +49,15 @@ const Section = ({ title, description, children }: { title: string; description?
   </Paper>
 );
 
+const NPI_STATUS: Record<string, string> = {
+  verified: "Verified",
+  needs_review: "Pending review",
+  rejected: "Not verified",
+};
+
 const ProfileDetails = ({ profile, onSaved }: { profile: Profile; onSaved: () => void }) => {
+  const { user } = useAuth();
+  const isTherapist = user?.role === "therapist";
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ProfileForm>(profile);
 
@@ -82,21 +90,41 @@ const ProfileDetails = ({ profile, onSaved }: { profile: Profile; onSaved: () =>
       }}
     >
       <Stack spacing={3}>
-        <Section title="About you" description="TherapyBot uses this to make conversations feel more personal.">
+        <Section
+          title="About you"
+          description={isTherapist ? "How you appear to clients." : "TherapyBot uses this to make conversations feel more personal."}
+        >
           <Stack spacing={2.5}>
-            <TextField {...field("display_name")} label="What should we call you?" placeholder={profile.username} helperText={errors.display_name} />
+            <TextField {...field("display_name")} label={isTherapist ? "Display name" : "What should we call you?"} placeholder={profile.username} helperText={errors.display_name} />
             <TextField {...field("email")} label="Email" type="email" helperText={errors.email ?? "Used for password resets."} />
-            <TextField
-              {...field("goals")}
-              label="What would you like to work on?"
-              placeholder="e.g. Feeling less anxious at work, sleeping better, fewer arguments at home"
-              multiline
-              minRows={3}
-              helperText={errors.goals}
-            />
+            {!isTherapist && (
+              <TextField
+                {...field("goals")}
+                label="What would you like to work on?"
+                placeholder="e.g. Feeling less anxious at work, sleeping better, fewer arguments at home"
+                multiline
+                minRows={3}
+                helperText={errors.goals}
+              />
+            )}
           </Stack>
         </Section>
 
+        {isTherapist && (
+          <Section title="Practice" description="Your verification status and documentation defaults.">
+            <Stack spacing={2.5}>
+              <Typography>
+                NPI: <strong>{NPI_STATUS[user?.npi_status ?? ""] ?? "Not provided"}</strong>
+              </Typography>
+              <TextField {...field("note_format")} select label="Default note format" helperText="Used when drafting progress notes.">
+                <MenuItem value="soap">SOAP (Subjective, Objective, Assessment, Plan)</MenuItem>
+                <MenuItem value="dap">DAP (Data, Assessment, Plan)</MenuItem>
+              </TextField>
+            </Stack>
+          </Section>
+        )}
+
+        {!isTherapist && (
         <Section
           title="Care preferences"
           description="Optional. Used to find therapists and resources that fit you. Never shared without your permission."
@@ -125,6 +153,7 @@ const ProfileDetails = ({ profile, onSaved }: { profile: Profile; onSaved: () =>
             />
           </Stack>
         </Section>
+        )}
 
         {save.isError && Object.keys(errors).length === 0 && <Alert severity="error">{getErrorMessage(save.error)}</Alert>}
         <Box display="flex" justifyContent="flex-end">
@@ -286,6 +315,7 @@ const PrivacyAndData = ({ hasPassword }: { hasPassword: boolean }) => {
 };
 
 export const ProfilePage = () => {
+  const { user } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ["profile"],
@@ -317,12 +347,17 @@ export const ProfilePage = () => {
             </Box>
           </Stack>
           <ProfileDetails profile={profile} onSaved={() => setToast("Profile saved")} />
-          <Section title="Care team" description="Therapists you're connected with, and what each can see.">
-            <CareTeamSection />
-          </Section>
-          <Section title="Reminders" description="A short daily email with your plan steps.">
-            <ReminderSettings />
-          </Section>
+          {/* Client-side workflow: their therapists and plan reminders. Therapists manage clients in /practice */}
+          {user?.role !== "therapist" && (
+            <>
+              <Section title="Care team" description="Therapists you're connected with, and what each can see.">
+                <CareTeamSection />
+              </Section>
+              <Section title="Reminders" description="A short daily email with your plan steps.">
+                <ReminderSettings />
+              </Section>
+            </>
+          )}
           <ChangePassword hasPassword={profile.has_password} onSaved={() => setToast("Password updated")} />
           <PrivacyAndData hasPassword={profile.has_password} />
         </Stack>

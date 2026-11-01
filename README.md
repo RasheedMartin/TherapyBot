@@ -135,7 +135,8 @@ Use `/api/health/` as the health-check path.
 | `FIELD_ENCRYPTION_KEYS`                                                      |          | Comma-separated Fernet keys for clinical text (newest first). Derived from `SECRET_KEY` if unset, so never rotate `SECRET_KEY` without setting this first |
 | `PHI_ALLOWED`                                                                |          | `false` (default) until HIPAA hosting and BAAs are in place; requires `FIELD_ENCRYPTION_KEYS` when `true` |
 | `ALLOWED_HOSTS`                                                              |          | Extra hostnames; the Railway domain is added automatically            |
-| `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` |          | SMTP (e.g. Resend) for verification, reset, invite, reminder and safety-flag emails (printed to logs if unset) |
+| `RESEND_API_KEY`, `DEFAULT_FROM_EMAIL`                                       |          | Email (verification, reset, invite, reminder, safety-flag) via Resend's HTTP API; the from-address domain must be verified in Resend. Railway blocks SMTP on the Hobby plan, so prefer this |
+| `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`                       |          | SMTP instead of Resend's API (used only when `RESEND_API_KEY` is unset). Emails are printed to logs if neither is set |
 | `GOOGLE_CLIENT_ID`    |          | Enables "Continue with Google" (Web OAuth client ID) |
 | `GROQ_FAST_MODEL`     |          | Model for risk screening, next-step detection and summaries (default `openai/gpt-oss-20b`) |
 | `THROTTLE_CHAT`                                                              |          | Per-user chat rate limit (default `20/min`)                           |
