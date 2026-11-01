@@ -185,7 +185,14 @@ CHAT_MAX_MESSAGE_LENGTH = int(os.getenv("CHAT_MAX_MESSAGE_LENGTH", "4000"))
 
 # --- Email -------------------------------------------------------------------
 
-if os.getenv("EMAIL_HOST"):
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+# Never let a mail server stall a request (SMTP otherwise waits for the OS connect timeout, minutes)
+EMAIL_TIMEOUT = 10
+
+if RESEND_API_KEY:
+    # HTTPS API: Railway blocks outbound SMTP on its Hobby plan
+    EMAIL_BACKEND = "therapybot.email_backend.ResendBackend"
+elif os.getenv("EMAIL_HOST"):
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = os.environ["EMAIL_HOST"]
     EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
