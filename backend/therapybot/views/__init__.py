@@ -42,6 +42,8 @@ from therapybot.views.screenings import (
     instruments,
     my_screenings,
     risk_flags,
+    screening_template_detail,
+    screening_templates,
 )
 from therapybot.views.care_team import (
     accept_invite,

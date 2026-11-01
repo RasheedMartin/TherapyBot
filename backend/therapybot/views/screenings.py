@@ -10,17 +10,67 @@ from rest_framework.response import Response
 from therapybot import audit
 from therapybot.clinical.instruments import INSTRUMENTS
 from therapybot.clinical.screenings import SAFETY_MESSAGE, record_screening, screening_trends
-from therapybot.models import CareRelationship, Client, RiskFlag, Screening
-from therapybot.permissions import authorize_client
-from therapybot.serializers import RiskFlagSerializer, ScreeningInputSerializer, ScreeningSerializer
+from therapybot.models import CareRelationship, Client, Practice, RiskFlag, Screening, ScreeningTemplate
+from therapybot.permissions import authorize_client, is_verified_therapist
+from therapybot.serializers import (
+    RiskFlagSerializer,
+    ScreeningInputSerializer,
+    ScreeningSerializer,
+    ScreeningTemplateSerializer,
+)
 from therapybot.views.common import VERIFIED
-from therapybot.views.practice import THERAPIST
+from therapybot.views.practice import THERAPIST, _therapist_practice
+
+
+def _practices_for(user):
+    """Practices whose templates this person can use: their own practice, or those caring for them as a client."""
+    if is_verified_therapist(user):
+        return [_therapist_practice(user)]
+    return list(Practice.objects.filter(
+        clients__user=user, clients__relationships__status=CareRelationship.Status.ACTIVE).distinct())
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def instruments(request):
-    return Response([i.as_dict() for i in INSTRUMENTS.values()])
+    """Standard instruments, then the practice's own templates (not archived)."""
+    templates = ScreeningTemplate.objects.filter(practice__in=_practices_for(request.user), archived=False)
+    return Response([i.as_dict() for i in INSTRUMENTS.values()] + [t.as_instrument().as_dict() for t in templates])
+
+
+@api_view(["GET", "POST"])
+@permission_classes(THERAPIST)
+def screening_templates(request):
+    """The practice's screening templates. POST creates one."""
+    practice = _therapist_practice(request.user)
+    if request.method == "GET":
+        templates = ScreeningTemplate.objects.filter(practice=practice).order_by("archived", "name")
+        return Response(ScreeningTemplateSerializer(templates, many=True).data)
+    serializer = ScreeningTemplateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    template = serializer.save(practice=practice, created_by=request.user)
+    audit.record(request.user, "screening_template.create", request=request, practice=practice, obj=template)
+    return Response(ScreeningTemplateSerializer(template).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes(THERAPIST)
+def screening_template_detail(request, template_id):
+    """Edit a template (questions lock once it has results), or archive it. Results are never deleted."""
+    practice = _therapist_practice(request.user)
+    template = ScreeningTemplate.objects.filter(practice=practice, pk=template_id).first()
+    if template is None:
+        raise Http404("Template not found")
+    if request.method == "DELETE":
+        template.archived = True
+        template.save(update_fields=["archived", "updated_at"])
+        audit.record(request.user, "screening_template.archive", request=request, practice=practice, obj=template)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    serializer = ScreeningTemplateSerializer(template, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    template = serializer.save(archived=bool(request.data.get("archived", template.archived)))
+    audit.record(request.user, "screening_template.edit", request=request, practice=practice, obj=template)
+    return Response(ScreeningTemplateSerializer(template).data)
 
 
 def _record(request, client, source):

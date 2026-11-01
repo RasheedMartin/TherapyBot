@@ -17,6 +17,7 @@ import {
   ChatBubbleOutline,
   ChecklistRtl,
   DescriptionOutlined,
+  FactCheckOutlined,
   GroupsOutlined,
   HomeOutlined,
   Logout,
@@ -130,6 +131,19 @@ export const Navbar = () => {
                 </ListItemIcon>
                 Profile & settings
               </MenuItem>
+              {user?.role === "therapist" && (
+                <MenuItem
+                  onClick={() => {
+                    setAnchorEl(null);
+                    navigate({ to: "/practice/templates" });
+                  }}
+                >
+                  <ListItemIcon>
+                    <FactCheckOutlined fontSize="small" />
+                  </ListItemIcon>
+                  Screening templates
+                </MenuItem>
+              )}
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
                   <Logout fontSize="small" />
