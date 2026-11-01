@@ -10,7 +10,7 @@ import { LinkButton } from "../components/RouterLink";
 import { useAuth } from "../context/AuthContext";
 
 const SCOPES = [
-  { key: "share_checkins", label: "Plan check-ins", help: "Which homework and plan steps you've done." },
+  { key: "share_checkins", label: "Plan progress", help: "Which homework and plan steps you've done." },
   { key: "share_chat_summaries", label: "Summaries of your TherapyBot chats", help: "Short summaries, not the conversations themselves." },
   { key: "share_raw_chat", label: "Full chat conversations", help: "Everything you write to TherapyBot. Off unless you turn it on." },
 ] as const;

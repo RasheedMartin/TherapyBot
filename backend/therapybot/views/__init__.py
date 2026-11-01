@@ -55,6 +55,7 @@ from therapybot.views.care_team import (
     leave_care,
     my_sessions,
     my_summaries,
+    therapist_overview,
     update_sharing,
 )
 from therapybot.views.care import (
@@ -131,6 +132,7 @@ __all__ = [
     "leave_care",
     "register_therapist",
     "resend_invite",
+    "therapist_overview",
     "update_sharing",
     "ConversationDetail",
     "ConversationListCreate",

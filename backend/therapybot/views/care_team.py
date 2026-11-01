@@ -10,8 +10,17 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from therapybot import audit, invites
-from therapybot.models import CareRelationship, Client, ClinicalDocument, Profile, Session
-from therapybot.serializers import CareTeamSerializer, therapist_display_name
+from therapybot.models import (
+    CareRelationship,
+    Client,
+    ClinicalDocument,
+    Plan,
+    Profile,
+    Screening,
+    Session,
+    TreatmentPlan,
+)
+from therapybot.serializers import CareTeamSerializer, ScreeningSerializer, therapist_display_name
 from therapybot.views.common import VERIFIED, AuthThrottle
 
 SHARED_ALWAYS = (
@@ -147,6 +156,69 @@ def my_summaries(request):
          "therapist_name": therapist_display_name(d.author)}
         for d in summaries
     ])
+
+
+@api_view(["GET"])
+@permission_classes(VERIFIED)
+def therapist_overview(request, pk):
+    """
+    Everything about one therapist in one place, from the client's side: who they are, sessions, completed
+    check-ins, homework, and shared summaries and goals. Their private notes are never included. Open check-ins
+    come from screenings/checkins/, which carries the questions.
+    """
+    relationship = get_object_or_404(
+        CareRelationship.objects.select_related("therapist__profile", "client__practice"),
+        pk=pk, client__user=request.user, status__in=[CareRelationship.Status.ACTIVE, CareRelationship.Status.ENDED],
+    )
+    therapist, client = relationship.therapist, relationship.client
+    profile = getattr(therapist, "profile", None)
+    details = (profile.npi_details or {}) if profile else {}
+    data = {
+        "relationship": CareTeamSerializer(relationship).data,
+        "therapist": {"name": therapist_display_name(therapist), "specialty": details.get("taxonomy", ""),
+                      "practice_name": client.practice.name},
+    }
+    if relationship.status != CareRelationship.Status.ACTIVE:
+        # After care ends the therapist's shared material goes with them; the client keeps their own results
+        return Response(data)
+
+    today = timezone.localdate()
+    sessions = client.sessions.filter(therapist=therapist)
+    upcoming = sessions.filter(date__gte=today, status__in=[Session.Status.SCHEDULED, Session.Status.CANCELLED]) \
+        .order_by("date", F("start_time").asc(nulls_first=True))[:6]
+    last = sessions.filter(date__lt=today, status=Session.Status.COMPLETED).order_by("-date").first()
+
+    completed = Screening.objects.filter(client=client, source=Screening.Source.SELF_REPORT) \
+        .select_related("template")[:5]
+
+    plan = TreatmentPlan.objects.filter(client=client, therapist=therapist, status=TreatmentPlan.Status.ACTIVE,
+                                        share_with_client=True).prefetch_related("goals__objectives").first()
+    homework = Plan.objects.filter(user=request.user, assigned_by=therapist, archived=False).prefetch_related("steps")
+    summaries = client.documents.filter(author=therapist, doc_type=ClinicalDocument.DocType.CLIENT_SUMMARY,
+                                        status=ClinicalDocument.Status.FINAL).order_by("-signed_at")[:10]
+    return Response({
+        **data,
+        "sessions": [
+            {"id": s.id, "date": s.date, "start_time": s.start_time, "duration_minutes": s.duration_minutes,
+             "status": s.status, "therapist_name": data["therapist"]["name"]} for s in upcoming
+        ],
+        "last_session": last.date if last else None,
+        "sessions_attended": sessions.filter(status=Session.Status.COMPLETED).count(),
+        "completed_checkins": [
+            {"id": s["id"], "name": s["instrument_name"], "date": s["administered_on"]}
+            for s in ScreeningSerializer(completed, many=True).data
+        ],
+        "goals": [
+            {"text": g.text, "objectives": [o.text for o in g.objectives.all()]} for g in plan.goals.all()
+        ] if plan else [],
+        "homework": [
+            {"id": h.id, "title": h.title, "steps": [st.title for st in h.steps.all()]} for h in homework
+        ],
+        "summaries": [
+            {"id": d.id, "session_date": d.session_date, "shared_at": d.signed_at, "text": d.text,
+             "therapist_name": data["therapist"]["name"]} for d in summaries
+        ],
+    })
 
 
 @api_view(["PATCH"])

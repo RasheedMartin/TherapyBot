@@ -516,6 +516,19 @@ export interface ClientSession {
   therapist_name: string;
 }
 
+/** One therapist, from the client's side. Everything past `relationship` is absent once care has ended. */
+export interface TherapistOverview {
+  relationship: CareTeamMember;
+  therapist: { name: string; specialty: string; practice_name: string };
+  sessions?: ClientSession[];
+  last_session?: string | null;
+  sessions_attended?: number;
+  completed_checkins?: { id: number; name: string; date: string }[];
+  goals?: { text: string; objectives: string[] }[];
+  homework?: { id: number; title: string; steps: string[] }[];
+  summaries?: SharedSummary[];
+}
+
 /** A session summary the therapist wrote for the client and shared. */
 export interface SharedSummary {
   id: number;
