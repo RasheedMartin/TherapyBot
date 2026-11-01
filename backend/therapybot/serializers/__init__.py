@@ -29,6 +29,7 @@ from therapybot.serializers.screenings import (
     RiskFlagSerializer,
     ScreeningInputSerializer,
     ScreeningSerializer,
+    ScreeningTemplateSerializer,
 )
 from therapybot.serializers.practice import (
     TherapistRegisterSerializer,

@@ -73,6 +73,9 @@ urlpatterns = [
     path("practice/risk-flags/", views.risk_flags, name="practice-risk-flags"),
     path("practice/risk-flags/<int:flag_id>/acknowledge/", views.acknowledge_risk_flag, name="practice-risk-flag-ack"),
     path("screenings/instruments/", views.instruments, name="screening-instruments"),
+    path("practice/screening-templates/", views.screening_templates, name="practice-screening-templates"),
+    path("practice/screening-templates/<int:template_id>/", views.screening_template_detail,
+         name="practice-screening-template"),
     path("screenings/mine/", views.my_screenings, name="my-screenings"),
     # Clients: their care team
     path("care-team/", views.care_team, name="care-team"),

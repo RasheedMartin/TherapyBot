@@ -293,6 +293,7 @@ export interface CitedItem {
 }
 
 export interface ScreeningTrend {
+  key: string;
   instrument: string;
   latest_total: number;
   latest_severity: string;
@@ -357,7 +358,8 @@ export interface TreatmentPlan {
 
 export interface Screening {
   id: number;
-  instrument: "phq9" | "gad7";
+  instrument: string; // "phq9", "gad7" or "t<template id>"
+  instrument_name: string;
   responses: number[];
   total: number;
   severity: string;
@@ -365,13 +367,37 @@ export interface Screening {
   source: "clinician" | "self_report";
 }
 
+export interface AnswerOption {
+  value: number;
+  label: string;
+}
+
 export interface Instrument {
-  key: "phq9" | "gad7";
+  key: string;
   name: string;
   prompt: string;
   items: string[];
-  options: { value: number; label: string }[];
+  options: AnswerOption[];
   max_total: number;
+  custom: boolean;
+  bands: { min: number; label: string }[];
+  risk_item: number | null;
+}
+
+/** A practice's own questionnaire. */
+export interface ScreeningTemplate {
+  id: number;
+  key: string;
+  name: string;
+  prompt: string;
+  items: string[];
+  options: AnswerOption[];
+  bands: { min: number; label: string }[];
+  risk_item: number | null;
+  risk_min: number;
+  archived: boolean;
+  results: number;
+  updated_at: string;
 }
 
 export interface RiskFlag {

@@ -23,6 +23,7 @@ import { ClientsPage } from "./pages/practice/ClientsPage";
 import { NotesQueue } from "./pages/practice/NotesQueue";
 import { PracticeOverview } from "./pages/practice/PracticeOverview";
 import { SchedulePage } from "./pages/practice/SchedulePage";
+import { TemplatesPage } from "./pages/practice/TemplatesPage";
 import { TherapistSignup } from "./pages/practice/TherapistSignup";
 
 const rootRoute = createRootRoute({
@@ -198,6 +199,7 @@ const practiceRoute = therapistPage("practice", PracticeOverview);
 const practiceClientsRoute = therapistPage("practice/clients", ClientsPage);
 const practiceScheduleRoute = therapistPage("practice/schedule", SchedulePage);
 const practiceNotesRoute = therapistPage("practice/notes", NotesQueue);
+const practiceTemplatesRoute = therapistPage("practice/templates", TemplatesPage);
 
 const practiceClientRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -234,6 +236,7 @@ export const router = createRouter({
     practiceClientsRoute,
     practiceScheduleRoute,
     practiceNotesRoute,
+    practiceTemplatesRoute,
     practiceClientRoute,
     practiceDocumentRoute,
     acceptInviteRoute,

@@ -25,6 +25,7 @@ from therapybot.models import (
     PracticeMembership,
     Profile,
     Screening,
+    ScreeningTemplate,
     Session,
 )
 
@@ -193,3 +194,20 @@ class Command(BaseCommand):
                 for role, content in messages:
                     convo.messages.create(role=role, content=content)
                 Conversation.objects.filter(pk=convo.pk).update(updated_at=timezone.now() - timedelta(days=days_ago))
+
+        # A practice template, so the demo shows a custom screening next to PHQ-9 / GAD-7
+        sleep = ScreeningTemplate.objects.create(
+            practice=practice, created_by=therapist, name="Weekly sleep check-in",
+            prompt="Think about the past week.",
+            items=["I fell asleep within 30 minutes", "I slept through the night", "I felt rested in the morning"],
+            options=[{"value": v, "label": label} for v, label in enumerate(
+                ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"])],
+            bands=[{"min": 0, "label": "poor"}, {"min": 6, "label": "fair"}, {"min": 10, "label": "good"}],
+        )
+        jordan = Client.objects.get(practice=practice, user__username="demo_jordan")
+        for days_ago, responses in ((14, [1, 1, 2]), (7, [2, 2, 2]), (1, [3, 2, 3])):
+            Screening.objects.create(
+                client=jordan, instrument=f"t{sleep.pk}", template=sleep, responses=responses, total=sum(responses),
+                severity=sleep.as_instrument().score(responses)[1], source="clinician", entered_by=therapist,
+                administered_on=today - timedelta(days=days_ago),
+            )

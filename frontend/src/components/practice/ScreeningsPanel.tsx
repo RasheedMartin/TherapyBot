@@ -8,12 +8,12 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  ListSubheader,
+  MenuItem,
   Radio,
   RadioGroup,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -22,22 +22,30 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api, { getErrorMessage } from "../../api/client";
 import type { Instrument, Screening, ScreeningTrend } from "../../api/types";
+import { LinkButton } from "../RouterLink";
 import { formatDate } from "./format";
 import { Panel } from "./AssistantPanels";
 
+const INSTRUMENTS_KEY = ["instruments"];
+
+const useInstruments = () =>
+  useQuery({
+    queryKey: INSTRUMENTS_KEY,
+    queryFn: async () => (await api.get<Instrument[]>("screenings/instruments/")).data,
+    staleTime: 5 * 60 * 1000,
+  });
+
 const EnterScreeningDialog = ({ clientId, open, onClose }: { clientId: number; open: boolean; onClose: () => void }) => {
   const queryClient = useQueryClient();
-  const instruments = useQuery({
-    queryKey: ["instruments"],
-    queryFn: async () => (await api.get<Instrument[]>("screenings/instruments/")).data,
-    staleTime: Infinity,
-  });
-  const [key, setKey] = useState<"phq9" | "gad7">("phq9");
+  const instruments = useInstruments();
+  const [key, setKey] = useState("phq9");
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(new Date().toLocaleDateString("en-CA"));
   const instrument = instruments.data?.find((i) => i.key === key);
   const complete = instrument && instrument.items.every((_, i) => answers[i] != null);
   const total = Object.values(answers).reduce((a, b) => a + b, 0);
+  const standard = instruments.data?.filter((i) => !i.custom) ?? [];
+  const custom = instruments.data?.filter((i) => i.custom) ?? [];
 
   const save = useMutation({
     mutationFn: async () =>
@@ -58,17 +66,20 @@ const EnterScreeningDialog = ({ clientId, open, onClose }: { clientId: number; o
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Enter a screening</DialogTitle>
       <DialogContent dividers>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={2} alignItems={{ sm: "center" }}>
-          <ToggleButtonGroup exclusive size="small" value={key} onChange={(_, v) => { if (v) { setKey(v); setAnswers({}); } }}>
-            <ToggleButton value="phq9">PHQ-9</ToggleButton>
-            <ToggleButton value="gad7">GAD-7</ToggleButton>
-          </ToggleButtonGroup>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={2}>
+          <TextField select size="small" label="Screening" value={key} sx={{ minWidth: 260 }}
+                     onChange={(e) => { setKey(e.target.value); setAnswers({}); }}>
+            <ListSubheader>Standard</ListSubheader>
+            {standard.map((i) => <MenuItem key={i.key} value={i.key}>{i.name}</MenuItem>)}
+            {custom.length > 0 && <ListSubheader>Your templates</ListSubheader>}
+            {custom.map((i) => <MenuItem key={i.key} value={i.key}>{i.name}</MenuItem>)}
+          </TextField>
           <TextField size="small" type="date" label="Administered" value={date} onChange={(e) => setDate(e.target.value)}
-                     InputLabelProps={{ shrink: true }} sx={{ maxWidth: 200 }} />
+                     slotProps={{ inputLabel: { shrink: true } }} sx={{ maxWidth: 200 }} />
         </Stack>
         {instrument && (
           <>
-            <Typography color="text.secondary" mb={2}>{instrument.prompt}</Typography>
+            {instrument.prompt && <Typography color="text.secondary" mb={2}>{instrument.prompt}</Typography>}
             <Stack spacing={2}>
               {instrument.items.map((item, i) => (
                 <Box key={i}>
@@ -88,7 +99,7 @@ const EnterScreeningDialog = ({ clientId, open, onClose }: { clientId: number; o
       </DialogContent>
       <DialogActions>
         <Typography variant="body2" color="text.secondary" sx={{ mr: "auto", ml: 2 }}>
-          Total so far: {total}{instrument ? ` / ${instrument.max_total}` : ""}
+          Total so far: {total}{instrument ? ` of ${instrument.max_total}` : ""}
         </Typography>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="contained" disabled={!complete || save.isPending} onClick={() => save.mutate()}>
@@ -99,50 +110,67 @@ const EnterScreeningDialog = ({ clientId, open, onClose }: { clientId: number; o
   );
 };
 
+const bandsCaption = (instrument?: Instrument) => {
+  if (!instrument?.bands.length) return "";
+  return instrument.bands.map((b, i) => `${i === 0 ? "" : "from "}${b.min} ${b.label}`).join(", ");
+};
+
 export const ScreeningsPanel = ({ clientId }: { clientId: number }) => {
   const theme = useTheme();
   const [entering, setEntering] = useState(false);
+  const instruments = useInstruments();
   const data = useQuery({
     queryKey: ["screenings", clientId],
     queryFn: async () =>
       (await api.get<{ screenings: Screening[]; trends: ScreeningTrend[] }>(`practice/clients/${clientId}/screenings/`)).data,
   });
-  const series = (["phq9", "gad7"] as const)
-    .map((key) => ({ key, points: (data.data?.screenings ?? []).filter((s) => s.instrument === key).reverse() }))
-    .filter((s) => s.points.length);
+  const trends = data.data?.trends ?? [];
 
   return (
-    <Panel title="Screenings" action={<Button size="small" startIcon={<Add />} onClick={() => setEntering(true)}>Enter</Button>}>
-      {data.data && series.length === 0 && <Typography color="text.secondary">No PHQ-9 or GAD-7 results yet.</Typography>}
-      {series.map(({ key, points }) => {
-        const trend = data.data?.trends.find((t) => t.instrument === (key === "phq9" ? "PHQ-9" : "GAD-7"));
+    <Panel
+      title="Screenings"
+      action={
+        <Stack direction="row" spacing={0.5}>
+          <LinkButton to="/practice/templates" size="small">Templates</LinkButton>
+          <Button size="small" startIcon={<Add />} onClick={() => setEntering(true)}>Enter</Button>
+        </Stack>
+      }
+    >
+      {data.data && trends.length === 0 && <Typography color="text.secondary">No screening results yet.</Typography>}
+      {trends.map((trend) => {
+        const points = (data.data?.screenings ?? []).filter((s) => s.instrument === trend.key).reverse();
+        const instrument = instruments.data?.find((i) => i.key === trend.key);
         return (
-          <Box key={key} mb={2}>
+          <Box key={trend.key} mb={2}>
             <Typography fontWeight={600}>
-              {key === "phq9" ? "PHQ-9" : "GAD-7"}: {trend?.latest_total} ({trend?.latest_severity})
-              {trend?.change != null && (
-                <Typography component="span" color={trend.change < 0 ? "success.main" : trend.change > 0 ? "warning.main" : "text.secondary"} ml={1}>
+              {trend.instrument}: {trend.latest_total}{trend.latest_severity && ` (${trend.latest_severity})`}
+              {trend.change != null && (
+                // Lower is better on PHQ-9 / GAD-7; a template's direction isn't known, so its change stays neutral
+                <Typography component="span" ml={1}
+                            color={instrument?.custom || trend.change === 0 ? "text.secondary" : trend.change < 0 ? "success.main" : "warning.main"}>
                   {trend.change > 0 ? "+" : ""}{trend.change} since {formatDate(trend.previous_date)}
                 </Typography>
               )}
             </Typography>
             {points.length > 1 && (
               <LineChart
-                height={180}
-                margin={{ left: 0, right: 16, top: 16, bottom: 0 }}
+                height={170}
+                margin={{ left: 0, right: 28, top: 16, bottom: 0 }}
                 xAxis={[{
                   scaleType: "point",
                   data: points.map((p) => new Date(`${p.administered_on}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" })),
                 }]}
-                yAxis={[{ min: 0, max: key === "phq9" ? 27 : 21, width: 32 }]}
+                yAxis={[{ min: 0, max: trend.max_total, width: 32 }]}
                 series={[{ data: points.map((p) => p.total), color: theme.palette.primary.main, label: "Total" }]}
                 hideLegend
               />
             )}
+            {bandsCaption(instrument) && (
+              <Typography variant="caption" color="text.secondary">Ranges: {bandsCaption(instrument)}.</Typography>
+            )}
           </Box>
         );
       })}
-      <Typography variant="caption" color="text.secondary">Lower is better. Bands: 5 mild · 10 moderate · 15+ severe.</Typography>
       <EnterScreeningDialog clientId={clientId} open={entering} onClose={() => setEntering(false)} />
     </Panel>
   );
