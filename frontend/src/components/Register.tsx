@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { AuthLayout } from "./AuthLayout";
 import { GoogleSignIn } from "./GoogleSignIn";
 import { RouterLink } from "./RouterLink";
+import { useReturnHere } from "./returnTo";
 
 interface RegisterFormData {
   username: string;
@@ -15,6 +16,7 @@ interface RegisterFormData {
 }
 
 export const RegisterPage = () => {
+  const returnHere = useReturnHere();
   const { login } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
     username: "",
@@ -61,7 +63,7 @@ export const RegisterPage = () => {
       subtitle="Your conversations are saved privately to your account."
       footer={
         <>
-          Already have an account? <RouterLink to="/login">Sign in</RouterLink>
+          Already have an account? <RouterLink to="/login" search={returnHere}>Sign in</RouterLink>
         </>
       }
     >

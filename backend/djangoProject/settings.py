@@ -29,6 +29,8 @@ def env_list(name: str, default: str = "") -> list[str]:
 
 
 DEBUG = env_bool("DEBUG")
+# The Django admin shows decrypted user data, so it's off in production unless switched on deliberately
+ADMIN_ENABLED = env_bool("ADMIN_ENABLED", DEBUG)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "")
 if not SECRET_KEY:

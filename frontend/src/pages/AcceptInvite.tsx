@@ -18,7 +18,7 @@ const SCOPES = [
 /** A client reviews exactly what a therapist will see, chooses what to share, and accepts. */
 export const AcceptInvitePage = () => {
   const { t } = useSearch({ from: "/care-team/invite" });
-  const { authenticated, user } = useAuth();
+  const { authenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const preview = useQuery({
     queryKey: ["invite", t],
@@ -74,11 +74,17 @@ export const AcceptInvitePage = () => {
             <Typography variant="body2" color="text.secondary">Sign in or create an account with {p.invited_email} to accept.</Typography>
             <Stack direction="row" spacing={1}>
               <LinkButton to="/login" search={{ redirect }} variant="contained">Sign in</LinkButton>
-              <LinkButton to="/register" variant="outlined">Create account</LinkButton>
+              <LinkButton to="/register" search={{ redirect }} variant="outlined">Create account</LinkButton>
             </Stack>
           </Stack>
         ) : wrongAccount ? (
-          <Alert severity="warning">This invitation was sent to {p.invited_email}. Sign in with that account to accept it.</Alert>
+          <Alert
+            severity="warning"
+            action={<Button color="inherit" size="small" onClick={() => logout()}>Sign out</Button>}
+          >
+            This invitation was sent to {p.invited_email}, but you're signed in as {user.email}. Sign out, then
+            sign in or create an account with {p.invited_email} to accept it.
+          </Alert>
         ) : (
           <Button variant="contained" size="large" onClick={() => accept.mutate()} disabled={accept.isPending}>
             Accept and connect

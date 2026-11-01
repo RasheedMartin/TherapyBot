@@ -7,8 +7,10 @@ import { useAuth } from "../context/AuthContext";
 import { AuthLayout } from "./AuthLayout";
 import { GoogleSignIn } from "./GoogleSignIn";
 import { RouterLink } from "./RouterLink";
+import { useReturnHere } from "./returnTo";
 
 export const Login = () => {
+  const returnHere = useReturnHere();
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +37,7 @@ export const Login = () => {
       subtitle="Sign in to continue your conversations."
       footer={
         <>
-          New here? <RouterLink to="/register">Create an account</RouterLink>
+          New here? <RouterLink to="/register" search={returnHere}>Create an account</RouterLink>
         </>
       }
     >
