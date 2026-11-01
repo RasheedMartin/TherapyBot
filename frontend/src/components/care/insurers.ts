@@ -1,0 +1,50 @@
+/**
+ * Common US coverage for therapy, for the insurance picker. Not exhaustive (there are thousands of plans),
+ * so the picker also accepts free text. Behavioral health is often run by a separate network ("carve-out"),
+ * which is why those are listed too.
+ */
+export const INSURERS: { name: string; group: string }[] = [
+  ...[
+    "Aetna",
+    "Ambetter",
+    "Anthem Blue Cross Blue Shield",
+    "Blue Cross Blue Shield (other state plan)",
+    "Blue Shield of California",
+    "CareFirst BlueCross BlueShield",
+    "Cigna",
+    "EmblemHealth",
+    "Excellus BlueCross BlueShield",
+    "Fidelis Care",
+    "Florida Blue",
+    "Geisinger Health Plan",
+    "Harvard Pilgrim Health Care",
+    "Health Net",
+    "Healthfirst",
+    "Highmark",
+    "Horizon Blue Cross Blue Shield",
+    "Humana",
+    "Independence Blue Cross",
+    "Kaiser Permanente",
+    "Medica",
+    "Molina Healthcare",
+    "Oscar Health",
+    "Premera Blue Cross",
+    "Priority Health",
+    "Regence BlueShield",
+    "Tufts Health Plan",
+    "UnitedHealthcare",
+    "UPMC Health Plan",
+    "WellCare",
+  ].map((name) => ({ name, group: "Health plans" })),
+  ...["Carelon Behavioral Health", "Evernorth Behavioral Health", "Magellan Health", "Optum Behavioral Health"].map(
+    (name) => ({ name, group: "Behavioral health networks" }),
+  ),
+  ...["Medicare", "Medicare Advantage", "Medicaid", "CHIP", "TRICARE", "VA Community Care"].map((name) => ({
+    name,
+    group: "Government programs",
+  })),
+  ...["Employee Assistance Program (EAP)", "Self-pay", "Sliding scale"].map((name) => ({
+    name,
+    group: "Other ways to pay",
+  })),
+];
