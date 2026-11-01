@@ -5,8 +5,9 @@ django-cors-headers==4.9.0
 djangorestframework-simplejwt==5.5.0
 google-auth>=2.30,<3.0
 
-# Reading uploaded session notes
+# Reading uploaded session notes and imported records
 pypdf>=5.0,<7.0
+python-docx>=1.1,<2.0
 dj-database-url>=2.2.0,<3.0
 whitenoise>=6.7.0,<7.0
 

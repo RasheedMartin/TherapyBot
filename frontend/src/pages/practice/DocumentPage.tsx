@@ -49,7 +49,17 @@ export const DocumentPage = () => {
       </LinkButton>
       <Typography variant="h4" component="h1">{d.title}</Typography>
       <Stack direction="row" spacing={1} my={1.5} flexWrap="wrap" useFlexGap>
-        <Chip size="small" color={d.status === "draft" ? "warning" : "primary"} label={d.status === "draft" ? "Draft: not signed" : `Signed ${formatDate(d.signed_at)} by ${d.signed_by_name}`} />
+        <Chip
+          size="small"
+          color={d.status === "draft" ? "warning" : "primary"}
+          label={
+            d.status === "draft"
+              ? "Draft: not signed"
+              : d.imported_from
+                ? `Imported from ${d.imported_from}`
+                : `Signed ${formatDate(d.signed_at)} by ${d.signed_by_name}`
+          }
+        />
         <Chip size="small" variant="outlined" label={formatDate(d.session_date)} />
         {d.amends && <Chip size="small" variant="outlined" label="Addendum" />}
         {d.title.includes("AI draft") && <Chip size="small" variant="outlined" label="AI draft: review every section" />}

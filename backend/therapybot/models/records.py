@@ -72,6 +72,8 @@ class ClinicalDocument(models.Model):
     signed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    # File name for documents imported from another system's export (provenance shown in the record)
+    imported_from = models.CharField(max_length=255, blank=True)
     # Signed documents are never edited; corrections are new documents that amend them
     amends = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="amendments")
     created_at = models.DateTimeField(auto_now_add=True)

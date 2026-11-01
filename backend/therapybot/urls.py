@@ -50,6 +50,8 @@ urlpatterns = [
     path("practice/clients/<int:pk>/documents/<int:doc_id>/sign/", views.sign_document, name="record-document-sign"),
     path("practice/clients/<int:pk>/documents/<int:doc_id>/addendum/", views.add_addendum,
          name="record-document-addendum"),
+    path("practice/clients/<int:pk>/import/preview/", views.import_preview, name="record-import-preview"),
+    path("practice/clients/<int:pk>/import/", views.import_records, name="record-import"),
     path("practice/clients/<int:pk>/homework/", views.homework, name="record-homework"),
     path("practice/clients/<int:pk>/between-sessions/", views.between_sessions_view, name="record-between-sessions"),
     path("practice/clients/<int:pk>/prep/", views.prep, name="record-prep"),

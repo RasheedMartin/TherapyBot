@@ -19,6 +19,7 @@ from therapybot.serializers.companion import (
 from therapybot.serializers.clinical import (
     ClinicalDocumentSerializer,
     DocumentSummarySerializer,
+    ImportedDocumentSerializer,
     SessionSerializer,
     TreatmentPlanSerializer,
     save_goals,
