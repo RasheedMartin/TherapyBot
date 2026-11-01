@@ -1,9 +1,10 @@
 """
 Send email through Resend's HTTP API. Railway blocks outbound SMTP on its Hobby plan, so SMTP connections
 hang until they time out; HTTPS isn't blocked. Supports what the app sends: plain text, an HTML
-alternative, reply-to, cc/bcc and extra headers (List-Unsubscribe).
+alternative, reply-to, cc/bcc, extra headers (List-Unsubscribe) and file attachments (calendar invites).
 """
 
+import base64
 import logging
 
 import requests
@@ -37,6 +38,15 @@ class ResendBackend(BaseEmailBackend):
                 payload["reply_to"] = list(message.reply_to)
             if message.extra_headers:
                 payload["headers"] = dict(message.extra_headers)
+            attachments = []
+            for attachment in message.attachments:
+                # Django stores (filename, content, mimetype) tuples; MIME objects aren't used by this app
+                if isinstance(attachment, tuple):
+                    filename, content, _ = attachment
+                    raw = content.encode() if isinstance(content, str) else content
+                    attachments.append({"filename": filename, "content": base64.b64encode(raw).decode()})
+            if attachments:
+                payload["attachments"] = attachments
             try:
                 res = requests.post(
                     RESEND_URL, json=payload, timeout=TIMEOUT,

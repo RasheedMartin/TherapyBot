@@ -46,6 +46,7 @@ from therapybot.views.care_team import (
     care_team,
     invite_preview,
     leave_care,
+    my_sessions,
     update_sharing,
 )
 from therapybot.views.care import (

@@ -18,8 +18,8 @@ import {
   type Profile,
   type SavedProvider,
 } from "../api/types";
+import { UpcomingSessions } from "../components/care/UpcomingSessions";
 import { TodayList } from "../components/plans/TodayList";
-import { formatTime } from "../components/practice/format";
 import { PLANS_KEY } from "../components/plans/useCheckIn";
 import { useAuth } from "../context/AuthContext";
 import { LinkButton } from "../components/RouterLink";
@@ -50,9 +50,6 @@ const Card = ({
     {action && <Box sx={{ mt: 2 }}>{action}</Box>}
   </Paper>
 );
-
-const formatSessionDate = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -100,12 +97,9 @@ export const Dashboard = () => {
         }
       >
         <Typography fontWeight={600}>{therapist.therapist_name}</Typography>
+        {/* Upcoming sessions have their own section above; here, who they're seeing */}
         <Typography color="text.secondary">
-          {therapist.next_session
-            ? `Next session: ${formatSessionDate(therapist.next_session)}${
-                therapist.next_session_time ? ` at ${formatTime(therapist.next_session_time)}` : ""
-              }`
-            : "No upcoming session scheduled yet."}
+          {therapist.next_session ? therapist.practice_name : "No upcoming session scheduled yet."}
         </Typography>
       </Card>
     ) : (
@@ -197,6 +191,7 @@ export const Dashboard = () => {
       </Typography>
 
       <Stack spacing={3}>
+        {therapist && <UpcomingSessions />}
         {/* What to do today, and the conversation to come back to: equal height, side by side on desktop */}
         <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "3fr 2fr" } }}>
           {activePlans.length > 0 ? (

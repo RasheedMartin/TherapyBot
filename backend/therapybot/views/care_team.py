@@ -1,6 +1,7 @@
 """The client side of care relationships: reviewing and accepting invites, and controlling what's shared."""
 
 from django.db import transaction
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -9,7 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from therapybot import audit, invites
-from therapybot.models import CareRelationship, Client, Profile
+from therapybot.models import CareRelationship, Client, Profile, Session
 from therapybot.serializers import CareTeamSerializer, therapist_display_name
 from therapybot.views.common import VERIFIED, AuthThrottle
 
@@ -101,6 +102,31 @@ def care_team(request):
         .select_related("therapist__profile", "client__practice")
     )
     return Response(CareTeamSerializer(relationships, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes(VERIFIED)
+def my_sessions(request):
+    """
+    The client's upcoming sessions with therapists currently in their care, including ones cancelled so a
+    cancellation is visible rather than a session silently disappearing.
+    """
+    today = timezone.localdate()
+    sessions = (
+        Session.objects.filter(
+            client__user=request.user, date__gte=today,
+            status__in=[Session.Status.SCHEDULED, Session.Status.CANCELLED],
+            client__relationships__therapist=F("therapist"),
+            client__relationships__status=CareRelationship.Status.ACTIVE,
+        )
+        .select_related("therapist__profile").distinct()
+        .order_by("date", F("start_time").asc(nulls_first=True))[:12]
+    )
+    return Response([
+        {"id": s.id, "date": s.date, "start_time": s.start_time, "duration_minutes": s.duration_minutes,
+         "status": s.status, "therapist_name": therapist_display_name(s.therapist)}
+        for s in sessions
+    ])
 
 
 @api_view(["PATCH"])
