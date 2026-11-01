@@ -23,7 +23,7 @@ const ConversationItem = ({ item }: { item: SharedConversation }) => {
       <Stack direction="row" spacing={1} alignItems="baseline" justifyContent="space-between">
         <Typography fontWeight={600} noWrap>{item.title || "Conversation"}</Typography>
         <Typography variant="caption" color="text.secondary" flexShrink={0}>
-          {formatDate(item.updated_at)} · {item.message_count} messages
+          {formatDate(item.updated_at)}, {item.message_count} messages
         </Typography>
       </Stack>
       {item.flagged && (

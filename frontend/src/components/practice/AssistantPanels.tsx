@@ -21,7 +21,7 @@ import { formatDate } from "./format";
 
 export const Panel = ({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) => (
   <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 4 }}>
-    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2} spacing={1}>
+    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2} columnGap={1} rowGap={1} flexWrap="wrap">
       <Typography variant="h6" component="h2">
         {title}
       </Typography>

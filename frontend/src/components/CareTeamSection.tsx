@@ -52,7 +52,7 @@ export const CareTeamSection = () => {
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
             <Box>
               <Typography fontWeight={600}>{m.therapist_name}</Typography>
-              <Typography variant="body2" color="text.secondary">{m.practice_name} · connected {formatDate(m.consented_at)}</Typography>
+              <Typography variant="body2" color="text.secondary">{m.practice_name}, connected {formatDate(m.consented_at)}</Typography>
             </Box>
             <Button size="small" color="error" onClick={() => setLeaving(m)}>Disconnect</Button>
           </Stack>

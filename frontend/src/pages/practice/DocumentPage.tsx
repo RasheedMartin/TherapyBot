@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Button, Chip, CircularProgress, Container, Paper, Stack, TextField, Typography } from "@mui/material";
+import { ArrowBack } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import api, { getErrorMessage } from "../../api/client";
@@ -44,8 +45,8 @@ export const DocumentPage = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 } }}>
-      <LinkButton to="/practice/clients/$clientId" params={{ clientId }} size="small" sx={{ ml: -1, mb: 1 }}>
-        ← Back to client
+      <LinkButton to="/practice/clients/$clientId" params={{ clientId }} size="small" startIcon={<ArrowBack />} sx={{ ml: -1, mb: 1 }}>
+        Back to client
       </LinkButton>
       <Typography variant="h4" component="h1">{d.title}</Typography>
       <Stack direction="row" spacing={1} my={1.5} flexWrap="wrap" useFlexGap>

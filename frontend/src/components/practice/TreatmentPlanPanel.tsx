@@ -77,7 +77,7 @@ export const TreatmentPlanPanel = ({ clientId }: { clientId: number }) => {
                   <li key={o.text}>
                     <Typography variant="body2">
                       {o.text}
-                      {o.measure && <Typography component="span" variant="body2" color="text.secondary"> · measured by {o.measure}</Typography>}
+                      {o.measure && <Typography component="span" variant="body2" color="text.secondary">, measured by {o.measure}</Typography>}
                     </Typography>
                     {o.interventions.length > 0 && (
                       <Typography variant="caption" color="text.secondary">Interventions: {o.interventions.join("; ")}</Typography>

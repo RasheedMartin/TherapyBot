@@ -1,6 +1,5 @@
 import { Box, Container, LinearProgress, Paper, Stack, Typography } from "@mui/material";
 import {
-  ArrowForward,
   ChatBubbleOutline,
   ChecklistRtl,
   DescriptionOutlined,
@@ -94,7 +93,7 @@ export const Dashboard = () => {
         icon={<EventOutlined />}
         title="Your therapist"
         action={
-          <LinkButton to="/profile" variant="text" endIcon={<ArrowForward />} sx={{ ml: -1 }}>
+          <LinkButton to="/profile" variant="text" sx={{ ml: -1 }}>
             What they can see
           </LinkButton>
         }
@@ -115,11 +114,11 @@ export const Dashboard = () => {
         title="Finding a therapist"
         action={
           saved.length === 0 ? (
-            <LinkButton to="/find-care" variant="outlined" endIcon={<ArrowForward />}>
+            <LinkButton to="/find-care" variant="outlined">
               Find care near me
             </LinkButton>
           ) : (
-            <LinkButton to="/find-care" search={{ tab: "shortlist" }} variant="outlined" endIcon={<ArrowForward />}>
+            <LinkButton to="/find-care" search={{ tab: "shortlist" }} variant="outlined">
               Open my shortlist
             </LinkButton>
           )
@@ -159,7 +158,7 @@ export const Dashboard = () => {
       icon={<DescriptionOutlined />}
       title="After a session"
       action={
-        <LinkButton to="/notes" variant="text" endIcon={<ArrowForward />} sx={{ ml: -1 }}>
+        <LinkButton to="/notes" variant="text" sx={{ ml: -1 }}>
           Understand my notes
         </LinkButton>
       }
@@ -174,7 +173,7 @@ export const Dashboard = () => {
         icon={<TuneOutlined />}
         title="Personalize TherapyBot"
         action={
-          <LinkButton to="/profile" variant="text" endIcon={<ArrowForward />} sx={{ ml: -1 }}>
+          <LinkButton to="/profile" variant="text" sx={{ ml: -1 }}>
             Update profile
           </LinkButton>
         }
@@ -206,7 +205,7 @@ export const Dashboard = () => {
               icon={<ChecklistRtl />}
               title="Make a plan"
               action={
-                <LinkButton to={lastConversation ? "/chat" : "/plans"} variant="outlined" endIcon={<ArrowForward />}>
+                <LinkButton to={lastConversation ? "/chat" : "/plans"} variant="outlined">
                   {lastConversation ? "Open a chat, then tap “Make a plan”" : "Start a plan"}
                 </LinkButton>
               }

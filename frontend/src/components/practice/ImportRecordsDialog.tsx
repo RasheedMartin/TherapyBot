@@ -140,8 +140,8 @@ export const ImportRecordsDialog = ({ clientId, open, onClose }: { clientId: num
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ pl: { sm: 6 }, mt: 0.5 }}>
                   <Typography variant="caption" color="text.secondary">
-                    {r.filename} · {r.text.length.toLocaleString()} characters
-                    {!r.session_date && " · no date found"}
+                    {r.filename}, {r.text.length.toLocaleString()} characters
+                    {!r.session_date && ", no date found"}
                   </Typography>
                   <Button size="small" onClick={() => update(r.key, { open: !r.open })}>{r.open ? "Hide text" : "Show text"}</Button>
                 </Stack>

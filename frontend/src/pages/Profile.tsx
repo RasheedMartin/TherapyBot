@@ -354,7 +354,7 @@ export const ProfilePage = () => {
                 {profile.display_name || profile.username}
               </Typography>
               <Typography color="text.secondary">
-                @{profile.username} · Member since{" "}
+                @{profile.username}, member since{" "}
                 {new Date(profile.date_joined).toLocaleDateString([], { month: "long", year: "numeric" })}
               </Typography>
             </Box>

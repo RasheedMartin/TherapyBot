@@ -129,7 +129,7 @@ export const ScreeningsPanel = ({ clientId }: { clientId: number }) => {
             {points.length > 1 && (
               <LineChart
                 height={180}
-                margin={{ left: 0, right: 16, top: 16, bottom: 0 }}
+                margin={{ left: 0, right: 28, top: 16, bottom: 0 }}
                 xAxis={[{
                   scaleType: "point",
                   data: points.map((p) => new Date(`${p.administered_on}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" })),
@@ -142,7 +142,7 @@ export const ScreeningsPanel = ({ clientId }: { clientId: number }) => {
           </Box>
         );
       })}
-      <Typography variant="caption" color="text.secondary">Lower is better. Bands: 5 mild · 10 moderate · 15+ severe.</Typography>
+      <Typography variant="caption" color="text.secondary">Lower is better. From 5 is mild, from 10 moderate, from 15 severe.</Typography>
       <EnterScreeningDialog clientId={clientId} open={entering} onClose={() => setEntering(false)} />
     </Panel>
   );
