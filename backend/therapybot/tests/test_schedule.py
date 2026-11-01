@@ -25,7 +25,7 @@ class SchedulingTests(APITestCase):
         self.assertEqual([s.date for s in sessions], [self.monday + timedelta(weeks=w) for w in range(4)])
         self.assertTrue(all(s.start_time == time(14, 0) and s.status == "scheduled" for s in sessions))
 
-        bad = self.client.post(url, {"date": self.monday.isoformat(), "repeat_weeks": 40}, format="json")
+        bad = self.client.post(url, {"date": self.monday.isoformat(), "repeat": {"frequency": "weekly", "count": 80}}, format="json")
         self.assertEqual(bad.status_code, 400)
         short = self.client.post(url, {"date": self.monday.isoformat(), "duration_minutes": 5}, format="json")
         self.assertIn("duration_minutes", short.data)
@@ -190,7 +190,8 @@ class ClientSessionTests(APITestCase):
         sent = mail.outbox[-1]
         self.assertEqual(sent.to, [self.user.email])
         self.assertNotIn("therap", sent.subject.lower())  # neutral subject: it shows on lock screens
-        self.assertIn("weekly for 3 sessions", sent.body)
+        self.assertIn("repeats every week on", sent.body)
+        self.assertIn("3 sessions through", sent.body)
         filename, ics, mimetype = sent.attachments[0]
         self.assertEqual((filename, mimetype), ("session.ics", "text/calendar"))
         self.assertEqual(ics.count("BEGIN:VEVENT"), 3)

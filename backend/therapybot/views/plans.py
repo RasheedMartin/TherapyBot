@@ -147,7 +147,8 @@ def plan_calendar(request, pk):
 def _feed_urls(request, profile):
     if not profile.calendar_token:
         return {"enabled": False, "discreet": profile.calendar_discreet}
-    https_url = request.build_absolute_uri(f"/api/calendar/{profile.calendar_token}.ics")
+    # The configured public API address (api.therapybot.app), not whichever host served this request
+    https_url = f"{settings.API_BASE_URL}/api/calendar/{profile.calendar_token}.ics"
     webcal_url = "webcal://" + https_url.split("://", 1)[1]
     return {
         "enabled": True,

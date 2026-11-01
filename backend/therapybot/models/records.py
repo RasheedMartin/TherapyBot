@@ -25,6 +25,8 @@ class Session(models.Model):
     # Wall-clock time in the therapist's time zone; null for sessions recorded without one (e.g. imports)
     start_time = models.TimeField(null=True, blank=True)
     duration_minutes = models.PositiveSmallIntegerField(default=50)
+    # Sessions booked together as a repeating series share this id (each can still be changed on its own)
+    series_id = models.UUIDField(null=True, blank=True, db_index=True)
     modality = models.CharField(max_length=12, choices=Modality.choices, default=Modality.INTEGRATIVE)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.COMPLETED)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -5,6 +5,7 @@ permissions.authorize_client first; AI drafts are always saved as drafts for the
 """
 
 import logging
+import uuid
 from datetime import date, timedelta
 
 from django.db import transaction
@@ -16,7 +17,7 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.response import Response
 
 from therapybot import audit, between_sessions, session_notices
-from therapybot.clinical import assistant, importing
+from therapybot.clinical import assistant, importing, recurrence
 from therapybot.documents import UnreadableFile, extract_text
 from therapybot.models import CareRelationship, Client, ClinicalDocument, Plan, RiskFlag, Session, TreatmentPlan
 from therapybot.permissions import active_relationship, authorize_client
@@ -58,9 +59,6 @@ def _session(client, session_id):
     return session
 
 
-MAX_REPEAT_WEEKS = 12
-
-
 # --- The record ------------------------------------------------------------------------------------
 
 
@@ -84,30 +82,45 @@ def timeline(request, pk):
 @api_view(["POST"])
 @permission_classes(THERAPIST)
 def create_session(request, pk):
-    """Add a session. With repeat_weeks (1-12), also schedule that many weekly sessions after it."""
+    """
+    Add a session. With `repeat` ({frequency, weekdays, count | until}), book the whole series: weekly,
+    every 2 weeks, on chosen days each week, or monthly on the same weekday. Each session can still be
+    moved or cancelled on its own.
+    """
     client = authorize_client(request.user, pk, "session.create", request=request)
     serializer = SessionSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+    first_date = serializer.validated_data["date"]
+    repeat_data = request.data.get("repeat")
+    if not repeat_data and request.data.get("repeat_weeks"):  # older clients: N extra weekly sessions
+        try:
+            repeat_data = {"frequency": "weekly", "count": int(request.data["repeat_weeks"]) + 1}
+        except (TypeError, ValueError):
+            return Response({"repeat": ["Choose how many sessions to book."]}, status=400)
     try:
-        repeat = int(request.data.get("repeat_weeks") or 0)
-    except (TypeError, ValueError):
-        repeat = -1
-    if not 0 <= repeat <= MAX_REPEAT_WEEKS:
-        return Response({"repeat_weeks": [f"Repeat for 0 to {MAX_REPEAT_WEEKS} weeks."]}, status=400)
+        repeat = recurrence.Repeat.parse(repeat_data, first_date)
+    except recurrence.RecurrenceError as e:
+        return Response({"repeat": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+    dates = recurrence.occurrences(first_date, repeat) if repeat else [first_date]
+    series_id = uuid.uuid4() if len(dates) > 1 else None
     with transaction.atomic():
-        session = serializer.save(client=client, therapist=request.user)
-        for week in range(1, repeat + 1):
+        session = serializer.save(client=client, therapist=request.user, series_id=series_id)
+        series = [session] + [
             Session.objects.create(
-                client=client, therapist=request.user, date=session.date + timedelta(weeks=week),
-                start_time=session.start_time, duration_minutes=session.duration_minutes, modality=session.modality,
-                status=Session.Status.SCHEDULED,
+                client=client, therapist=request.user, date=day, start_time=session.start_time,
+                duration_minutes=session.duration_minutes, modality=session.modality,
+                status=Session.Status.SCHEDULED, series_id=series_id,
             )
-    audit.record(request.user, "session.create", request=request, client=client, obj=session, repeat_weeks=repeat)
+            for day in dates[1:]
+        ]
+    audit.record(request.user, "session.create", request=request, client=client, obj=session,
+                 repeat=repeat.frequency if repeat else "none", sessions=len(series))
     notified = False
     if session.status == Session.Status.SCHEDULED and session.date >= timezone.localdate():
-        notified = session_notices.notify_client(session, "scheduled", series=repeat + 1)
-    return Response({**SessionSerializer(session).data, "created": repeat + 1, "client_notified": notified},
-                    status=status.HTTP_201_CREATED)
+        notified = session_notices.notify_client(
+            session, "scheduled", series=series, pattern=repeat.describe(first_date) if repeat else "")
+    return Response({**SessionSerializer(session).data, "created": len(series), "last_date": series[-1].date,
+                     "client_notified": notified}, status=status.HTTP_201_CREATED)
 
 
 @api_view(["PATCH"])
