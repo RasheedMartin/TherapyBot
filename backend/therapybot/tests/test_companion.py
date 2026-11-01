@@ -1,6 +1,7 @@
 import json
 from unittest import mock
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
@@ -589,7 +590,9 @@ class WorkflowTests(APITestCase):
         self.assertTrue(links["webcal_url"].startswith("webcal://"))
         self.assertIn("calendar.google.com", links["google_url"])
 
-        feed_path = links["url"].split("testserver", 1)[1]
+        # Links use the configured public API address, whatever host the request came in on
+        self.assertTrue(links["url"].startswith(f"{settings.API_BASE_URL}/api/calendar/"))
+        feed_path = links["url"][len(settings.API_BASE_URL):]
         self.client.force_authenticate(None)  # calendar apps fetch without logging in
         body = self.client.get(feed_path).content.decode()
         self.assertIn("SUMMARY:Evening walk", body)
@@ -607,7 +610,7 @@ class WorkflowTests(APITestCase):
         new_links = self.client.post("/api/account/calendar-feed/").data
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(feed_path).status_code, 404)
-        self.assertEqual(self.client.get(new_links["url"].split("testserver", 1)[1]).status_code, 200)
+        self.assertEqual(self.client.get(new_links["url"][len(settings.API_BASE_URL):]).status_code, 200)
 
     def test_contacting_a_provider_completes_find_care_step(self):
         saved = self.client.post("/api/saved-providers/", {"npi": "1801415708", "details": SAMPLE_PROVIDER},

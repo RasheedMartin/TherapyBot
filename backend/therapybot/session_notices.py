@@ -22,7 +22,7 @@ def _when(session: Session) -> str:
     return f"{day} at {hour}"
 
 
-def notify_client(session: Session, kind: str, series: int = 1) -> bool:
+def notify_client(session: Session, kind: str, series: list[Session] | None = None, pattern: str = "") -> bool:
     """kind is "scheduled", "rescheduled" or "cancelled". Returns True if an email was sent."""
     from therapybot.serializers import therapist_display_name
 
@@ -41,15 +41,12 @@ def notify_client(session: Session, kind: str, series: int = 1) -> bool:
     elif kind == "rescheduled":
         lead = f"{therapist} moved your session to {when} ({session.duration_minutes} minutes)."
     else:
-        repeat = f" It repeats weekly for {series} sessions." if series > 1 else ""
+        repeat = ""
+        if series and len(series) > 1:
+            last = series[-1].date
+            repeat = f" It repeats {pattern}, {len(series)} sessions through {last:%B} {last.day}."
         lead = f"{therapist} scheduled a session with you on {when} ({session.duration_minutes} minutes).{repeat}"
-    sessions = [session]
-    if series > 1:
-        sessions = list(
-            Session.objects.filter(client=client, therapist=session.therapist, date__gte=session.date,
-                                   start_time=session.start_time, status=Session.Status.SCHEDULED)
-            .order_by("date")[:series]
-        )
+    sessions = series or [session]
     title = f"Therapy session · {therapist}"
     ics = render_calendar("TherapyBot sessions", [], sessions=[(s, title) for s in sessions])
     message = EmailMessage(
