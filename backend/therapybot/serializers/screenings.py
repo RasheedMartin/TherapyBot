@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 from therapybot.clinical.instruments import INSTRUMENTS
-from therapybot.models import RiskFlag, Screening, ScreeningTemplate
+from therapybot.models import RiskFlag, Screening, ScreeningAssignment, ScreeningTemplate
 
 
 class ScreeningSerializer(serializers.ModelSerializer):
@@ -20,6 +20,26 @@ class ScreeningSerializer(serializers.ModelSerializer):
             return screening.template.name
         standard = INSTRUMENTS.get(screening.instrument)
         return standard.name if standard else screening.instrument
+
+
+class ScreeningAssignmentSerializer(serializers.ModelSerializer):
+    """A check-in sent to a client, as the therapist sees it."""
+
+    instrument_name = serializers.SerializerMethodField()
+    note = serializers.CharField(required=False, allow_blank=True, max_length=300)
+
+    class Meta:
+        model = ScreeningAssignment
+        fields = ("id", "instrument", "instrument_name", "repeat", "note", "due_on", "active", "last_completed_on",
+                  "created_at")
+        read_only_fields = ("active", "last_completed_on", "created_at")
+        extra_kwargs = {"due_on": {"required": False}}
+
+    def get_instrument_name(self, assignment):
+        if assignment.template_id:
+            return assignment.template.name
+        standard = INSTRUMENTS.get(assignment.instrument)
+        return standard.name if standard else assignment.instrument
 
 
 class ScreeningInputSerializer(serializers.Serializer):

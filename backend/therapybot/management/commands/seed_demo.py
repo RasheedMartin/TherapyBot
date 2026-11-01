@@ -25,6 +25,7 @@ from therapybot.models import (
     PracticeMembership,
     Profile,
     Screening,
+    ScreeningAssignment,
     ScreeningTemplate,
     Session,
 )
@@ -211,3 +212,9 @@ class Command(BaseCommand):
                 severity=sleep.as_instrument().score(responses)[1], source="clinician", entered_by=therapist,
                 administered_on=today - timedelta(days=days_ago),
             )
+        # ...sent to Jordan weekly, with this week's open on their home page (no email from the seed)
+        ScreeningAssignment.objects.create(
+            client=jordan, assigned_by=therapist, instrument=f"t{sleep.pk}", template=sleep, repeat="weekly",
+            note="Same three questions as last week. Answer for the past seven nights.",
+            due_on=today, last_completed_on=today - timedelta(days=7), notified_for=today,
+        )

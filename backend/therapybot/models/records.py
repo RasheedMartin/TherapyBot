@@ -227,6 +227,35 @@ class Screening(models.Model):
         return f"{self.instrument} {self.total} ({self.administered_on})"
 
 
+class ScreeningAssignment(models.Model):
+    """A screening the therapist asked the client to complete from their portal, once or on a repeat."""
+
+    class Repeat(models.TextChoices):
+        ONCE = "once", "Once"
+        WEEKLY = "weekly", "Every week"
+        BIWEEKLY = "biweekly", "Every 2 weeks"
+        MONTHLY = "monthly", "Every month"
+
+    client = models.ForeignKey("Client", on_delete=models.CASCADE, related_name="screening_assignments")
+    assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    instrument = models.CharField(max_length=20)  # same keys as Screening.instrument
+    template = models.ForeignKey(ScreeningTemplate, on_delete=models.CASCADE, null=True, blank=True,
+                                 related_name="assignments")
+    repeat = models.CharField(max_length=10, choices=Repeat.choices, default=Repeat.ONCE)
+    note = EncryptedTextField(blank=True)  # optional message to the client, shown with the check-in
+    due_on = models.DateField()
+    active = models.BooleanField(default=True)
+    last_completed_on = models.DateField(null=True, blank=True)
+    notified_for = models.DateField(null=True, blank=True)  # the due date the client was last emailed about
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["due_on", "pk"]
+
+    def __str__(self):
+        return f"{self.instrument} for {self.client} ({self.repeat}, due {self.due_on})"
+
+
 class RiskFlag(models.Model):
     """
     Something in a client's data a therapist should follow up on: a positive PHQ-9 item 9, or risk
