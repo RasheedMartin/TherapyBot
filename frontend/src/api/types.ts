@@ -215,7 +215,20 @@ export interface DocumentSummary {
   session: number | null;
   session_date: string | null;
   signed_at: string | null;
+  imported_from: string;
   created_at: string;
+}
+
+/** A document suggested by an import, reviewed by the therapist before it's saved. */
+export interface ImportedDocument {
+  title: string;
+  doc_type: Exclude<DocType, "client_upload">;
+  session_date: string | null;
+  text: string;
+}
+
+export interface ImportPreview {
+  files: { filename: string; error?: string; documents: ImportedDocument[] }[];
 }
 
 export interface ClinicalDocument extends DocumentSummary {

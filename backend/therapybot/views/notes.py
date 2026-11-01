@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from therapybot import ai
+from therapybot.documents import extract_text
 from therapybot.models import (
     Conversation,
     ClinicalDocument,
@@ -27,24 +28,8 @@ MAX_NOTE_CHARS = 20000
 
 
 def _extract_upload_text(upload) -> str:
-    name = (upload.name or "").lower()
-    if upload.size > 5 * 1024 * 1024:
-        raise ValueError("That file is too large. Please upload a file under 5 MB.")
-    if name.endswith(".pdf"):
-        from pypdf import PdfReader
-        from pypdf.errors import PdfReadError
-
-        try:
-            reader = PdfReader(upload)
-            text = "\n".join((page.extract_text() or "") for page in reader.pages[:30])
-        except (PdfReadError, ValueError):
-            raise ValueError("Couldn't read that PDF. Try copying and pasting the text instead.")
-        if len(text.strip()) < 20:
-            raise ValueError("That PDF looks like a scanned image, so there's no text to read. Please paste the text.")
-        return text
-    if name.endswith((".txt", ".md")):
-        return upload.read().decode("utf-8", errors="replace")
-    raise ValueError("Upload a PDF or text file, or paste your notes.")
+    """Text from a client's uploaded notes (PDF, Word or text). Raises ValueError with a message to show."""
+    return extract_text(upload, max_bytes=5 * 1024 * 1024, max_pages=30)
 
 
 class SessionNoteListCreate(generics.ListCreateAPIView):

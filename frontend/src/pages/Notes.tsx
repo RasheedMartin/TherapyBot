@@ -115,8 +115,8 @@ const NewNoteForm = () => {
           ) : (
             <Box>
               <Button component="label" variant="outlined" startIcon={<UploadFileOutlined />}>
-                {file ? file.name : "Choose a PDF or text file"}
-                <input hidden type="file" accept=".pdf,.txt,.md" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                {file ? file.name : "Choose a PDF, Word or text file"}
+                <input hidden type="file" accept=".pdf,.docx,.txt,.md" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               </Button>
               <Typography variant="caption" color="text.secondary" display="block" mt={1}>
                 Patient-portal PDFs work well. Scanned images can't be read yet, so paste the text instead.

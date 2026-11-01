@@ -22,7 +22,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
-import { Add, AutoAwesomeOutlined, EditNoteOutlined } from "@mui/icons-material";
+import { Add, AutoAwesomeOutlined, EditNoteOutlined, UploadFileOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import api, { getErrorMessage } from "../../api/client";
@@ -38,6 +38,7 @@ import {
 import { AskPanel, Panel, PrepPanel } from "../../components/practice/AssistantPanels";
 import { formatDate } from "../../components/practice/format";
 import { BetweenSessionsPanel } from "../../components/practice/BetweenSessionsPanel";
+import { ImportRecordsDialog } from "../../components/practice/ImportRecordsDialog";
 import { ScreeningsPanel } from "../../components/practice/ScreeningsPanel";
 import { SyntheticDataBanner } from "../../components/practice/SyntheticDataBanner";
 import { TreatmentPlanPanel } from "../../components/practice/TreatmentPlanPanel";
@@ -213,6 +214,7 @@ export const ClientDetail = () => {
   const [drafting, setDrafting] = useState(false);
   const profile = useQuery({ queryKey: ["profile"], queryFn: async () => (await api.get<Profile>("profile/")).data });
   const [addingSession, setAddingSession] = useState(false);
+  const [importing, setImporting] = useState(false);
   const client = useQuery({ queryKey: ["practice-client", id], queryFn: async () => (await api.get<PracticeClient>(`practice/clients/${id}/`)).data });
   const timeline = useQuery({ queryKey: ["timeline", id], queryFn: async () => (await api.get<Timeline>(`practice/clients/${id}/timeline/`)).data, enabled: client.data?.relationship?.status === "active" });
   const resend = useMutation({ mutationFn: () => api.post(`practice/clients/${id}/resend-invite/`) });
@@ -267,6 +269,7 @@ export const ClientDetail = () => {
                 action={
                   <Stack direction="row" spacing={1}>
                     <Button size="small" onClick={() => setAddingSession(true)}>Add session</Button>
+                    <Button size="small" startIcon={<UploadFileOutlined />} onClick={() => setImporting(true)}>Import</Button>
                     <Button size="small" startIcon={<EditNoteOutlined />} onClick={() => newNote.mutate()} disabled={newNote.isPending}>New note</Button>
                     <Button size="small" variant="contained" startIcon={<AutoAwesomeOutlined />} onClick={() => setDrafting(true)}>From transcript</Button>
                   </Stack>
@@ -284,7 +287,7 @@ export const ClientDetail = () => {
                       </Typography>
                       {s.documents.map((d) => (
                         <ListItemButton key={d.id} dense onClick={() => openDoc(d.id)} sx={{ borderRadius: 2, pl: 1.5 }}>
-                          <ListItemText primary={d.title} secondary={DOC_LABELS[d.doc_type]} />
+                          <ListItemText primary={d.title} secondary={`${DOC_LABELS[d.doc_type]}${d.imported_from ? " · imported" : ""}`} />
                           {d.status === "draft" && <Chip size="small" color="warning" label="Draft" />}
                         </ListItemButton>
                       ))}
@@ -315,6 +318,7 @@ export const ClientDetail = () => {
         <DraftFromTranscriptDialog key={latestPastSession(timeline.data.sessions)?.id ?? 0} clientId={id} sessions={timeline.data.sessions}
                                    open={drafting} onClose={() => setDrafting(false)} />
       )}
+      <ImportRecordsDialog clientId={id} open={importing} onClose={() => setImporting(false)} />
       <NewSessionDialog clientId={id} open={addingSession} onClose={() => setAddingSession(false)} />
     </Container>
   );

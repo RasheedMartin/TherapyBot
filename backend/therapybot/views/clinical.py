@@ -15,12 +15,14 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.response import Response
 
 from therapybot import audit, between_sessions
-from therapybot.clinical import assistant
+from therapybot.clinical import assistant, importing
+from therapybot.documents import UnreadableFile, extract_text
 from therapybot.models import ClinicalDocument, Plan, Session, TreatmentPlan
 from therapybot.permissions import active_relationship, authorize_client
 from therapybot.serializers import (
     ClinicalDocumentSerializer,
     DocumentSummarySerializer,
+    ImportedDocumentSerializer,
     PlanSerializer,
     SessionSerializer,
     TreatmentPlanSerializer,
@@ -189,6 +191,55 @@ def between_sessions_view(request, pk):
                  conversations=len(data["conversations"]),
                  raw=any(c["messages"] is not None for c in data["conversations"]))
     return Response(data)
+
+
+# --- Importing existing records ----------------------------------------------------------------------
+
+MAX_IMPORT_FILES = 10
+
+
+@api_view(["POST"])
+@permission_classes(THERAPIST)
+def import_preview(request, pk):
+    """
+    Read uploaded files (PDF, Word, text) and suggest the documents in them. Nothing is saved: the therapist
+    reviews dates, types and titles, then confirms with import_records.
+    """
+    client = authorize_client(request.user, pk, "record.import_preview", request=request)
+    uploads = request.FILES.getlist("files")
+    if not uploads:
+        return Response({"files": ["Choose at least one file."]}, status=status.HTTP_400_BAD_REQUEST)
+    if len(uploads) > MAX_IMPORT_FILES:
+        return Response({"files": [f"Upload up to {MAX_IMPORT_FILES} files at a time."]},
+                        status=status.HTTP_400_BAD_REQUEST)
+    files = []
+    for upload in uploads:
+        try:
+            files.append({"filename": upload.name, "documents": importing.split_records(extract_text(upload), upload.name)})
+        except UnreadableFile as e:
+            files.append({"filename": upload.name, "error": str(e), "documents": []})
+    audit.record(request.user, "record.import_preview", request=request, client=client, files=len(files),
+                 documents=sum(len(f["documents"]) for f in files))
+    return Response({"files": files})
+
+
+@api_view(["POST"])
+@permission_classes(THERAPIST)
+def import_records(request, pk):
+    """Save the documents the therapist reviewed. Dated notes are attached to (or create) that day's session."""
+    client = authorize_client(request.user, pk, "record.import", request=request)
+    serializer = ImportedDocumentSerializer(data=request.data.get("documents"), many=True)
+    serializer.is_valid(raise_exception=True)
+    if not serializer.validated_data:
+        return Response({"documents": ["Nothing selected to import."]}, status=status.HTTP_400_BAD_REQUEST)
+    if len(serializer.validated_data) > importing.MAX_DOCUMENTS:
+        return Response({"documents": [f"Import up to {importing.MAX_DOCUMENTS} documents at a time."]},
+                        status=status.HTTP_400_BAD_REQUEST)
+    result = importing.import_documents(client=client, therapist=request.user, documents=serializer.validated_data)
+    audit.record(request.user, "record.import", request=request, client=client,
+                 documents=len(result["documents"]), sessions_created=result["sessions_created"])
+    return Response({"created": len(result["documents"]), "sessions_created": result["sessions_created"]},
+                    status=status.HTTP_201_CREATED)
 
 
 # --- AI assistant ------------------------------------------------------------------------------------

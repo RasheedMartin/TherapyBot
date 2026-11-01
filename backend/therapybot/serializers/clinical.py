@@ -1,5 +1,6 @@
 """The therapist's view of a client's record: sessions, documents, treatment plans."""
 
+from django.utils import timezone
 from rest_framework import serializers
 
 from therapybot.models import ClinicalDocument, Session, TreatmentGoal, TreatmentObjective, TreatmentPlan
@@ -25,8 +26,8 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClinicalDocument
         fields = ("id", "title", "doc_type", "status", "session", "session_date", "text", "author_name",
-                  "signed_at", "signed_by_name", "amends", "editable", "created_at", "updated_at")
-        read_only_fields = ("status", "signed_at", "amends", "created_at", "updated_at")
+                  "signed_at", "signed_by_name", "amends", "editable", "imported_from", "created_at", "updated_at")
+        read_only_fields = ("status", "signed_at", "amends", "imported_from", "created_at", "updated_at")
 
     def get_author_name(self, doc):
         return _name(doc.author)
@@ -46,7 +47,8 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
 class DocumentSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = ClinicalDocument
-        fields = ("id", "title", "doc_type", "status", "session", "session_date", "signed_at", "created_at")
+        fields = ("id", "title", "doc_type", "status", "session", "session_date", "signed_at", "imported_from",
+                  "created_at")
 
 
 class TreatmentObjectiveSerializer(serializers.ModelSerializer):
@@ -92,3 +94,21 @@ def save_goals(plan: TreatmentPlan, goals: list[dict]) -> None:
                 goal=saved, text=objective["text"], measure=objective.get("measure", ""),
                 interventions=objective.get("interventions", []), order=j,
             )
+
+
+class ImportedDocumentSerializer(serializers.Serializer):
+    """One reviewed document from an import, as the therapist confirmed it."""
+
+    IMPORTABLE = [ClinicalDocument.DocType.PROGRESS_NOTE, ClinicalDocument.DocType.TRANSCRIPT,
+                  ClinicalDocument.DocType.INTAKE, ClinicalDocument.DocType.OTHER]
+
+    title = serializers.CharField(max_length=120)
+    doc_type = serializers.ChoiceField(choices=IMPORTABLE)
+    session_date = serializers.DateField(allow_null=True, required=False)
+    text = serializers.CharField(min_length=20, max_length=20000, trim_whitespace=True)
+    filename = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+    def validate_session_date(self, value):
+        if value and value > timezone.localdate():
+            raise serializers.ValidationError("A note's date can't be in the future.")
+        return value
