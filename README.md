@@ -139,10 +139,18 @@ Use `/api/health/` as the health-check path.
 | `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`                       |          | SMTP instead of Resend's API (used only when `RESEND_API_KEY` is unset). Emails are printed to logs if neither is set |
 | `GOOGLE_CLIENT_ID`    |          | Enables "Continue with Google" (Web OAuth client ID) |
 | `GROQ_FAST_MODEL`     |          | Model for risk screening, next-step detection and summaries (default `openai/gpt-oss-20b`) |
+| `ADMIN_ENABLED`                                                              |          | Serve the Django admin at `/admin/` (default: same as `DEBUG`, so off in production) |
 | `THROTTLE_CHAT`                                                              |          | Per-user chat rate limit (default `20/min`)                           |
 | `WEB_CONCURRENCY`                                                            |          | Gunicorn workers (default 2)                                          |
 
-Create an admin user with `railway run python manage.py createsuperuser`; the admin lives at `/admin/`.
+The Django admin is **off in production** (it shows decrypted user data); set `ADMIN_ENABLED=true` to switch it
+on temporarily. Therapist NPI reviews don't need it:
+
+```bash
+railway ssh   # into the web service, then:
+python manage.py approve_npi --pending            # who is waiting for review
+python manage.py approve_npi <username>           # approve (or add --reject)
+```
 
 > **Capacity:** Groq's free tier allows about 8,000 tokens per minute per model, which is roughly 3 chat
 > replies per minute across *all* users. Upgrade to Groq's Developer tier before launch.
