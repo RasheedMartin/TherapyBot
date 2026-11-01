@@ -18,6 +18,7 @@ import {
   type Profile,
   type SavedProvider,
 } from "../api/types";
+import { SessionSummaryCard } from "../components/care/SessionSummaryCard";
 import { UpcomingSessions } from "../components/care/UpcomingSessions";
 import { TodayList } from "../components/plans/TodayList";
 import { PLANS_KEY } from "../components/plans/useCheckIn";
@@ -192,6 +193,7 @@ export const Dashboard = () => {
 
       <Stack spacing={3}>
         {therapist && <UpcomingSessions />}
+        {therapist && <SessionSummaryCard />}
         {/* What to do today, and the conversation to come back to: equal height, side by side on desktop */}
         <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "3fr 2fr" } }}>
           {activePlans.length > 0 ? (

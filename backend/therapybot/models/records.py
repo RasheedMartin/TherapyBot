@@ -50,6 +50,8 @@ class ClinicalDocument(models.Model):
         PROGRESS_NOTE = "progress_note", "Progress note"
         TRANSCRIPT = "transcript", "Session transcript"
         INTAKE = "intake", "Intake"
+        # A plain-language recap written for the client from a signed note; the client sees it once shared
+        CLIENT_SUMMARY = "client_summary", "Summary for the client"
         OTHER = "other", "Other"
 
     class Status(models.TextChoices):
@@ -77,6 +79,8 @@ class ClinicalDocument(models.Model):
     signed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    # For a client summary: the signed note it was written from
+    summary_of = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="client_summaries")
     # File name for documents imported from another system's export (provenance shown in the record)
     imported_from = models.CharField(max_length=255, blank=True)
     # Signed documents are never edited; corrections are new documents that amend them
@@ -121,6 +125,8 @@ class TreatmentPlan(models.Model):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
     problem_summary = EncryptedTextField(blank=True)
     ai_generated = models.BooleanField(default=False)
+    # Goals and objectives reach the client's companion only when the therapist chooses to share them
+    share_with_client = models.BooleanField(default=False)
     signed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

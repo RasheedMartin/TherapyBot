@@ -51,7 +51,8 @@ import { describeSchedule } from "../../components/plans/schedule";
 import { LinkButton } from "../../components/RouterLink";
 
 const DOC_LABELS: Record<string, string> = {
-  progress_note: "Note", transcript: "Transcript", intake: "Intake", client_upload: "Client upload", other: "Document",
+  progress_note: "Note", transcript: "Transcript", intake: "Intake", client_upload: "Client upload",
+  client_summary: "Summary for client", other: "Document",
 };
 
 /** A document in the record list; drafts get a label and a delete button beside (not inside) the row. */

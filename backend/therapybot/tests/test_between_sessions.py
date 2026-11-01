@@ -41,8 +41,9 @@ class CompanionContextTests(APITestCase):
         self.therapist = self.make_therapist()
         self.user = self.make_user()
 
-    def _treatment_plan(self, client, status="active"):
-        plan = TreatmentPlan.objects.create(client=client, therapist=self.therapist, status=status)
+    def _treatment_plan(self, client, status="active", shared=True):
+        plan = TreatmentPlan.objects.create(client=client, therapist=self.therapist, status=status,
+                                            share_with_client=shared)
         goal = TreatmentGoal.objects.create(plan=plan, text="Reduce work-related worry")
         TreatmentObjective.objects.create(goal=goal, text="Use scheduled worry time 5 days a week")
 
@@ -64,6 +65,11 @@ class CompanionContextTests(APITestCase):
         self.assertIn("Next session:", context)
         self.assertIn("Worry time (from their therapist)", context)
         self.assertIn("safety alerts always", context)
+
+    def test_goals_stay_out_of_the_companion_until_the_therapist_shares_them(self):
+        client, _ = self.link(self.therapist, self.user)
+        self._treatment_plan(client, shared=False)
+        self.assertNotIn("Reduce work-related worry", user_context(self.user))
 
     def test_unlinked_and_ended_clients_get_no_therapy_context(self):
         self.assertNotIn("therapist", user_context(self.user).lower())

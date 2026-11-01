@@ -281,7 +281,41 @@ def sign_document(request, pk, doc_id):
     doc.status, doc.signed_at, doc.signed_by = ClinicalDocument.Status.FINAL, timezone.now(), request.user
     doc.save(update_fields=["status", "signed_at", "signed_by", "updated_at"])
     audit.record(request.user, "document.sign", request=request, client=client, obj=doc)
-    return Response(ClinicalDocumentSerializer(doc).data)
+    # Signing a summary written for the client is what shares it with them
+    notified = False
+    if doc.doc_type == ClinicalDocument.DocType.CLIENT_SUMMARY:
+        notified = session_notices.notify_summary_shared(doc)
+    return Response({**ClinicalDocumentSerializer(doc).data, "client_notified": notified})
+
+
+@api_view(["POST"])
+@permission_classes(THERAPIST)
+@throttle_classes([ChatThrottle])
+def client_summary(request, pk, doc_id):
+    """
+    Draft a plain-language recap of a signed progress note for the client. Returns the existing unshared
+    draft if there is one. The therapist edits it; signing it shares it with the client.
+    """
+    client = authorize_client(request.user, pk, "document.client_summary", request=request)
+    note = _document(client, doc_id)
+    if (note.doc_type != ClinicalDocument.DocType.PROGRESS_NOTE or note.status != ClinicalDocument.Status.FINAL
+            or note.client_id != client.pk):
+        return Response({"detail": "Summaries are written from signed progress notes."}, status=status.HTTP_409_CONFLICT)
+    existing = note.client_summaries.filter(status=ClinicalDocument.Status.DRAFT).first()
+    if existing:
+        return Response(ClinicalDocumentSerializer(existing).data)
+    try:
+        text = assistant.draft_client_summary(actor=request.user, client=client, note=note, request=request)
+    except Exception:
+        logger.exception("Client summary draft failed for document %s", note.pk)
+        return Response(AI_UNAVAILABLE, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    when = f"{note.session_date:%b} {note.session_date.day}" if note.session_date else "your session"
+    summary = ClinicalDocument.objects.create(
+        client=client, author=request.user, session=note.session, session_date=note.session_date,
+        doc_type=ClinicalDocument.DocType.CLIENT_SUMMARY, status=ClinicalDocument.Status.DRAFT,
+        title=f"Summary for client, {when}", text=text, summary_of=note,
+    )
+    return Response(ClinicalDocumentSerializer(summary).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])
@@ -516,4 +550,19 @@ def sign_treatment_plan(request, pk, plan_id):
         plan.status, plan.signed_at = TreatmentPlan.Status.ACTIVE, timezone.now()
         plan.save(update_fields=["status", "signed_at", "updated_at"])
     audit.record(request.user, "treatment_plan.sign", request=request, client=client, obj=plan)
+    return Response(TreatmentPlanSerializer(plan).data)
+
+
+@api_view(["POST"])
+@permission_classes(THERAPIST)
+def share_treatment_plan(request, pk, plan_id):
+    """{"share": bool}: whether the plan's goals and objectives reach the client's companion."""
+    client = authorize_client(request.user, pk, "treatment_plan.share", request=request)
+    plan = TreatmentPlan.objects.filter(client=client, pk=plan_id).first()
+    if plan is None:
+        raise Http404("Treatment plan not found")
+    plan.share_with_client = bool(request.data.get("share"))
+    plan.save(update_fields=["share_with_client", "updated_at"])
+    audit.record(request.user, "treatment_plan.share", request=request, client=client, obj=plan,
+                 share=plan.share_with_client)
     return Response(TreatmentPlanSerializer(plan).data)
