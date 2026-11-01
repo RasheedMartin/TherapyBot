@@ -365,6 +365,7 @@ export interface CareTeamMember {
   share_checkins: boolean;
   share_chat_summaries: boolean;
   share_raw_chat: boolean;
+  next_session: string | null;
 }
 
 export interface InvitePreview {

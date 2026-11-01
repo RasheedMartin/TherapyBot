@@ -31,7 +31,7 @@ export const TodayList = ({ plans }: { plans: Plan[] }) => {
   const doneCount = due.filter(({ step }) => isDoneOn(step, today)).length;
 
   return (
-    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 4 }}>
+    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 4, height: "100%" }}>
       <Stack direction="row" alignItems="baseline" justifyContent="space-between" mb={1}>
         <Typography variant="h6" component="h2">
           Today

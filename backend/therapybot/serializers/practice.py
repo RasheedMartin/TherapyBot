@@ -1,6 +1,7 @@
 """Therapist practices, client records and care relationships."""
 
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework import serializers
 
 from therapybot.models import CareRelationship, Client
@@ -62,15 +63,26 @@ class CareTeamSerializer(serializers.ModelSerializer):
 
     therapist_name = serializers.SerializerMethodField()
     practice_name = serializers.CharField(source="client.practice.name", read_only=True)
+    next_session = serializers.SerializerMethodField()
 
     class Meta:
         model = CareRelationship
         fields = ("id", "therapist_name", "practice_name", "status", "invited_at", "consented_at", "ended_at",
-                  "share_checkins", "share_chat_summaries", "share_raw_chat")
+                  "share_checkins", "share_chat_summaries", "share_raw_chat", "next_session")
         read_only_fields = ("status", "invited_at", "consented_at", "ended_at")
 
     def get_therapist_name(self, rel):
         return therapist_display_name(rel.therapist)
+
+    def get_next_session(self, rel):
+        """The client's next scheduled session with this therapist (date only), for their home page."""
+        if rel.status != CareRelationship.Status.ACTIVE:
+            return None
+        session = (
+            rel.client.sessions.filter(therapist=rel.therapist, status="scheduled", date__gte=timezone.localdate())
+            .order_by("date").first()
+        )
+        return session.date.isoformat() if session else None
 
 
 def therapist_display_name(user: User) -> str:

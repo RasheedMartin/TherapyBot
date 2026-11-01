@@ -224,3 +224,17 @@ class RiskDenialCheckTests(APITestCase):
         self.assertFalse(unsupported_risk_denial("Said everyone would be better off without them; assess safety",
                                                  ["S1"], chat))
         self.assertFalse(unsupported_risk_denial("No homework plan was set", ["S1"], chat))  # not about risk
+
+
+class CareTeamNextSessionTests(APITestCase):
+    def test_client_sees_their_next_scheduled_session_only(self):
+        therapist, user = self.make_therapist(), self.make_user()
+        client, _ = self.link(therapist, user)
+        today = timezone.localdate()
+        Session.objects.create(client=client, therapist=therapist, date=today - timedelta(days=7))  # past
+        Session.objects.create(client=client, therapist=therapist, date=today + timedelta(days=9), status="scheduled")
+        Session.objects.create(client=client, therapist=therapist, date=today + timedelta(days=2), status="cancelled")
+        Session.objects.create(client=client, therapist=therapist, date=today + timedelta(days=4), status="scheduled")
+        self.login(user)
+        team = self.client.get("/api/care-team/").data
+        self.assertEqual(team[0]["next_session"], (today + timedelta(days=4)).isoformat())
