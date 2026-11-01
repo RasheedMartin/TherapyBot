@@ -93,8 +93,8 @@ export const Dashboard = () => {
         icon={<EventOutlined />}
         title="Your therapist"
         action={
-          <LinkButton to="/profile" variant="text" endIcon={<ArrowForward />} sx={{ ml: -1 }}>
-            What they can see
+          <LinkButton to="/my-therapist" search={{ id: therapist.id }} variant="text" endIcon={<ArrowForward />} sx={{ ml: -1 }}>
+            Sessions, goals and sharing
           </LinkButton>
         }
       >

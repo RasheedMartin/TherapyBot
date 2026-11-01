@@ -88,5 +88,6 @@ urlpatterns = [
     path("care-team/invite/", views.invite_preview, name="care-team-invite-preview"),
     path("care-team/accept/", views.accept_invite, name="care-team-accept"),
     path("care-team/<int:pk>/", views.update_sharing, name="care-team-update"),
+    path("care-team/<int:pk>/overview/", views.therapist_overview, name="care-team-overview"),
     path("care-team/<int:pk>/leave/", views.leave_care, name="care-team-leave"),
 ]

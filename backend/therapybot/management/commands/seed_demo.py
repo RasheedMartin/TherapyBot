@@ -28,6 +28,7 @@ from therapybot.models import (
     ScreeningAssignment,
     ScreeningTemplate,
     Session,
+    TreatmentPlan,
 )
 
 PASSWORD = "demo-Therapy-2026"
@@ -135,7 +136,7 @@ class Command(BaseCommand):
             user=user, role=role, display_name=first, email_verified_at=now, age_confirmed_at=now,
             terms_accepted_at=now,
             **({"npi": "0000000000", "npi_status": "verified", "npi_verified_at": now,
-                "npi_details": {"credential": "LCSW", "registry_name": name, "taxonomy": "Demo"}}
+                "npi_details": {"credential": "LCSW", "registry_name": name, "taxonomy": "Clinical Social Worker"}}
                if role == "therapist" else {}),
         )
         return user
@@ -217,4 +218,27 @@ class Command(BaseCommand):
             client=jordan, assigned_by=therapist, instrument=f"t{sleep.pk}", template=sleep, repeat="weekly",
             note="Same three questions as last week. Answer for the past seven nights.",
             due_on=today, last_completed_on=today - timedelta(days=7), notified_for=today,
+        )
+
+        # What Jordan's therapist chose to share: plan goals and a summary of the last session
+        plan = TreatmentPlan.objects.create(client=jordan, therapist=therapist, status="active", modality="cbt",
+                                            share_with_client=True, signed_at=timezone.now())
+        for goal_text, objectives in (
+            ("Feel calmer at work", ["Use worry time at 6pm at least 5 days a week",
+                                     "Speak up once in each weekly team meeting"]),
+            ("Sleep about 7 hours a night", ["Get out of bed after 20 minutes awake",
+                                             "Same wake-up time every day, weekends too"]),
+        ):
+            goal = plan.goals.create(text=goal_text)
+            for objective in objectives:
+                goal.objectives.create(text=objective)
+        last = jordan.documents.filter(doc_type="progress_note").order_by("-session_date").first()
+        ClinicalDocument.objects.create(
+            client=jordan, author=therapist, session=last.session, session_date=last.session_date, summary_of=last,
+            doc_type="client_summary", status="final", signed_at=timezone.now(), signed_by=therapist,
+            title="Session summary",
+            text=("We talked about the racing thoughts before Monday meetings and practiced slowing your breathing "
+                  "for two minutes. You noticed the worry eases once you start talking.\n\n"
+                  "This week: keep worry time at 6pm, and try saying one thing in the team meeting, even something "
+                  "small. Note how it goes so we can look at it together."),
         )

@@ -10,6 +10,7 @@ import { PlansPage } from "./pages/Plans";
 import { VerifyEmailPage } from "./pages/VerifyEmail";
 import { QuickCheckInPage, RemindersOffPage } from "./pages/EmailActions";
 import { NoteDetailPage, NotesPage } from "./pages/Notes";
+import { MyTherapistPage } from "./pages/MyTherapist";
 import { Login } from "./components/Login";
 import { RegisterPage } from "./components/Register";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
@@ -99,6 +100,18 @@ const profileRoute = createRoute({
   component: () => (
     <RequireAuth>
       <ProfilePage />
+    </RequireAuth>
+  ),
+});
+
+const myTherapistRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "my-therapist",
+  validateSearch: (search: Record<string, unknown>): { id?: number } =>
+    Number.isInteger(Number(search.id)) && search.id != null ? { id: Number(search.id) } : {},
+  component: () => (
+    <RequireAuth verified>
+      <MyTherapistPage />
     </RequireAuth>
   ),
 });
@@ -247,6 +260,7 @@ export const router = createRouter({
     chatRoute,
     profileRoute,
     findCareRoute,
+    myTherapistRoute,
     plansRoute,
     verifyEmailRoute,
     notesRoute,

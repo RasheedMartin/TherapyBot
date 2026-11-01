@@ -29,10 +29,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useReturnHere } from "./returnTo";
 import { LinkButton } from "./RouterLink";
 import { useAuth } from "../context/AuthContext";
+import { useActiveCareTeam } from "./chat/careTeam";
 
 // "Home" matches only its own page; the others stay highlighted on the pages beneath them
 const CLIENT_LINKS = [
   { to: "/", label: "Home", icon: <HomeOutlined />, exact: true },
+  { to: "/my-therapist", label: "My therapist", icon: <PersonOutline /> },
   { to: "/chat", label: "Chat", icon: <ChatBubbleOutline /> },
   { to: "/plans", label: "Plans", icon: <ChecklistRtl /> },
   { to: "/notes", label: "Notes", icon: <DescriptionOutlined /> },
@@ -50,6 +52,9 @@ export const Navbar = () => {
   const returnHere = useReturnHere();
   const navigate = useNavigate();
   const { authenticated, user, logout } = useAuth();
+  // Clients in care get a page for their therapist; everyone else keeps Find care in that spot
+  const inCare = useActiveCareTeam(authenticated && user?.role !== "therapist" && !!user?.email_verified).length > 0;
+  const clientLinks = CLIENT_LINKS.filter((l) => (l.to === "/my-therapist" ? inCare : true));
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const handleLogout = async () => {
@@ -76,7 +81,7 @@ export const Navbar = () => {
 
         {authenticated ? (
           <>
-            {(user?.role === "therapist" ? THERAPIST_LINKS : CLIENT_LINKS).map((link) => ({ ...link, exact: "exact" in link && link.exact })).map(({ to, label, icon, exact }) => (
+            {(user?.role === "therapist" ? THERAPIST_LINKS : clientLinks).map((link) => ({ ...link, exact: "exact" in link && link.exact })).map(({ to, label, icon, exact }) => (
               <Button
                 key={to}
                 component={Link}
