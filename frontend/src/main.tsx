@@ -1,3 +1,4 @@
+import "./monitoring"; // first, so errors during startup are captured
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";

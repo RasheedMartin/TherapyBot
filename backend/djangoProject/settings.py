@@ -242,3 +242,9 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --- Error monitoring ----------------------------------------------------------
+
+from therapybot.monitoring import init_sentry  # noqa: E402
+
+init_sentry()  # no-op unless SENTRY_DSN is set; scrubs user content before anything is sent
