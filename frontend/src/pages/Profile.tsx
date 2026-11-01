@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -26,6 +27,7 @@ import type { Profile, SessionFormat } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { ReminderSettings } from "../components/plans/ReminderSettings";
 import { CareTeamSection } from "../components/CareTeamSection";
+import { INSURERS } from "../components/care/insurers";
 
 type ProfileForm = Omit<Profile, "username" | "date_joined">;
 
@@ -145,11 +147,22 @@ const ProfileDetails = ({ profile, onSaved }: { profile: Profile; onSaved: () =>
                 ))}
               </TextField>
             </Stack>
-            <TextField
-              {...field("insurance")}
-              label="Insurance"
-              placeholder="e.g. Aetna, Medicaid, or self-pay"
-              helperText={errors.insurance}
+            {/* Pick from common plans or type any other; whatever is typed is what's saved */}
+            <Autocomplete
+              freeSolo
+              options={INSURERS}
+              groupBy={(o) => (typeof o === "string" ? "" : o.group)}
+              getOptionLabel={(o) => (typeof o === "string" ? o : o.name)}
+              inputValue={form.insurance}
+              onInputChange={(_, value) => setForm((f) => ({ ...f, insurance: value }))}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Insurance"
+                  placeholder="Start typing, e.g. Aetna, Medicaid or self-pay"
+                  helperText={errors.insurance ?? "Not listed? Type your plan's name."}
+                />
+              )}
             />
           </Stack>
         </Section>
