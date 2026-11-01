@@ -15,6 +15,7 @@ import { RegisterPage } from "./components/Register";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
 import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { RequireAuth, RequireGuest, RequireTherapist } from "./components/RouteGuards";
+import { safeRedirect } from "./components/returnTo";
 import { AcceptInvitePage } from "./pages/AcceptInvite";
 import { ClientDetail } from "./pages/practice/ClientDetail";
 import { DocumentPage } from "./pages/practice/DocumentPage";
@@ -35,9 +36,7 @@ const homeRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "login",
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
-    redirect: typeof search.redirect === "string" && search.redirect.startsWith("/") ? search.redirect : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({ redirect: safeRedirect(search.redirect) }),
   component: () => (
     <RequireGuest>
       <Login />
@@ -46,7 +45,7 @@ const loginRoute = createRoute({
 });
 
 const redirectSearch = (search: Record<string, unknown>): { redirect?: string } => ({
-  redirect: typeof search.redirect === "string" && search.redirect.startsWith("/") ? search.redirect : undefined,
+  redirect: safeRedirect(search.redirect),
 });
 
 const registerRoute = createRoute({

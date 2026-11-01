@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { MarkEmailUnreadOutlined } from "@mui/icons-material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Navigate, useRouterState } from "@tanstack/react-router";
+import { Navigate, useRouter, useRouterState } from "@tanstack/react-router";
 import api, { getErrorMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { RouterLink } from "./RouterLink";
@@ -62,10 +62,11 @@ const VerifyEmailNotice = () => {
 /** Requires sign-in; with `verified`, also requires a confirmed email address. */
 export const RequireAuth = ({ children, verified = false }: { children: React.ReactNode; verified?: boolean }) => {
   const { authenticated, loading, user } = useAuth();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // The full path with its query (e.g. /chat?c=6), so nothing is lost on the way back
+  const here = useRouterState({ select: (s) => s.location.href });
 
   if (loading) return <FullPageSpinner />;
-  if (!authenticated) return <Navigate to="/login" search={{ redirect: pathname }} replace />;
+  if (!authenticated) return <Navigate to="/login" search={{ redirect: here }} replace />;
   if (verified && user && !user.email_verified) return <VerifyEmailNotice />;
   return <>{children}</>;
 };
@@ -97,14 +98,24 @@ export const RequireTherapist = ({ children }: { children: React.ReactNode }) =>
   );
 };
 
+/** Navigate to a full path including its query string (e.g. an invite token), which `<Navigate to>` treats as a path. */
+const ReplaceWith = ({ href }: { href: string }) => {
+  const router = useRouter();
+  useEffect(() => router.history.replace(href), [router, href]);
+  return <FullPageSpinner />;
+};
+
 /** Sends signed-in users onward, to `?redirect=` when present (set by RequireAuth). */
 export const RequireGuest = ({ children }: { children: React.ReactNode }) => {
   const { authenticated, loading } = useAuth();
   const redirect = useRouterState({
     select: (s) => (s.location.search as { redirect?: string }).redirect,
   });
+  // Read once: while leaving, the URL changes before this page unmounts, and without the saved target
+  // the next render would fall through to "/" and override the redirect
+  const [target] = useState(redirect);
 
   if (loading) return <FullPageSpinner />;
-  if (authenticated) return <Navigate to={redirect ?? "/"} replace />;
+  if (authenticated) return target ? <ReplaceWith href={target} /> : <Navigate to="/" replace />;
   return <>{children}</>;
 };

@@ -23,6 +23,8 @@ import {
   Spa,
 } from "@mui/icons-material";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useReturnHere } from "./returnTo";
+import { LinkButton } from "./RouterLink";
 import { useAuth } from "../context/AuthContext";
 
 const CLIENT_LINKS = [
@@ -35,6 +37,7 @@ const CLIENT_LINKS = [
 const THERAPIST_LINKS = [{ to: "/practice", label: "Clients", icon: <GroupsOutlined /> }] as const;
 
 export const Navbar = () => {
+  const returnHere = useReturnHere();
   const navigate = useNavigate();
   const { authenticated, user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -127,12 +130,12 @@ export const Navbar = () => {
           </>
         ) : (
           <>
-            <Button component={Link} to="/login" color="inherit">
+            <LinkButton to="/login" search={returnHere} color="inherit">
               Sign in
-            </Button>
-            <Button component={Link} to="/register" variant="contained">
+            </LinkButton>
+            <LinkButton to="/register" search={returnHere} variant="contained">
               Get started
-            </Button>
+            </LinkButton>
           </>
         )}
       </Toolbar>
