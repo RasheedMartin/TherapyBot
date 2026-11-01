@@ -13,12 +13,34 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { ContentCopy, Google, Event } from "@mui/icons-material";
+import { ContentCopy, Event, Google, MailOutline } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api, { getErrorMessage } from "../../api/client";
 import type { CalendarFeed } from "../../api/types";
 
 const FEED_KEY = ["calendar-feed"];
+
+type Platform = "apple" | "android" | "windows" | "other";
+
+const platform = (): Platform => {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|Macintosh/.test(ua)) return "apple";
+  if (/Android/.test(ua)) return "android";
+  if (/Windows/.test(ua)) return "windows";
+  return "other";
+};
+
+/** One-click subscribe options, with the most likely one for this device first. */
+const calendarOptions = (f: CalendarFeed) => {
+  const options = [
+    { key: "apple", label: "Apple or Outlook app", href: f.webcal_url ?? "", icon: <Event />, external: false },
+    { key: "google", label: "Google Calendar", href: f.google_url ?? "", icon: <Google />, external: true },
+    { key: "outlook", label: "Outlook.com", href: f.outlook_url ?? "", icon: <MailOutline />, external: true },
+    { key: "office365", label: "Outlook (work or school)", href: f.office365_url ?? "", icon: <MailOutline />, external: true },
+  ].filter((o) => o.href);
+  const first = { apple: "apple", android: "google", windows: "outlook", other: "google" }[platform()];
+  return [...options.filter((o) => o.key === first), ...options.filter((o) => o.key !== first)];
+};
 
 const COPY = {
   plans: {
@@ -80,14 +102,25 @@ export const CalendarSyncDialog = ({
 
         {f?.enabled && (
           <Stack spacing={2.5}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-              <Button variant="contained" startIcon={<Google />} href={f.google_url ?? ""} target="_blank" rel="noopener noreferrer">
-                Add to Google Calendar
-              </Button>
-              <Button variant="outlined" startIcon={<Event />} href={f.webcal_url ?? ""}>
-                Apple / Outlook
-              </Button>
-            </Stack>
+            <Box>
+              <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+                {calendarOptions(f).map((option, i) => (
+                  <Button
+                    key={option.key}
+                    variant={i === 0 ? "contained" : "outlined"}
+                    startIcon={option.icon}
+                    href={option.href}
+                    {...(option.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </Box>
+              <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                Your calendar opens and asks you to confirm. Google's phone app can't subscribe to links; add it on the
+                web at calendar.google.com and it syncs to your phone.
+              </Typography>
+            </Box>
             <Box>
               <Stack direction="row" spacing={1}>
                 <TextField size="small" label="Or paste this link into any calendar app" value={f.url} InputProps={{ readOnly: true }} />

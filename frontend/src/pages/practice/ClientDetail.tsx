@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  IconButton,
   List,
   ListItemButton,
   ListItemText,
@@ -20,15 +21,17 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import { Add, AutoAwesomeOutlined, EditNoteOutlined, UploadFileOutlined } from "@mui/icons-material";
+import { Add, AutoAwesomeOutlined, DeleteOutline, EditNoteOutlined, UploadFileOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import api, { getErrorMessage } from "../../api/client";
 import {
   MODALITIES,
   type ClinicalDocument,
+  type DocumentSummary,
   type Plan,
   type PracticeClient,
   type Profile,
@@ -37,6 +40,7 @@ import {
 import { AskPanel, Panel, PrepPanel } from "../../components/practice/AssistantPanels";
 import { formatDate, formatTime } from "../../components/practice/format";
 import { BetweenSessionsPanel } from "../../components/practice/BetweenSessionsPanel";
+import { DeleteDraftDialog } from "../../components/practice/DeleteDraftDialog";
 import { ImportRecordsDialog } from "../../components/practice/ImportRecordsDialog";
 import { ScheduleSessionDialog } from "../../components/practice/ScheduleSessionDialog";
 import { ScreeningsPanel } from "../../components/practice/ScreeningsPanel";
@@ -49,6 +53,25 @@ import { LinkButton } from "../../components/RouterLink";
 const DOC_LABELS: Record<string, string> = {
   progress_note: "Note", transcript: "Transcript", intake: "Intake", client_upload: "Client upload", other: "Document",
 };
+
+/** A document in the record list; drafts get a label and a delete button beside (not inside) the row. */
+const DocumentRow = ({ doc, secondary, onOpen, onDelete }: {
+  doc: DocumentSummary; secondary: string; onOpen: () => void; onDelete: () => void;
+}) => (
+  <Stack direction="row" alignItems="center">
+    <ListItemButton dense onClick={onOpen} sx={{ borderRadius: 2, pl: 1.5 }}>
+      <ListItemText primary={doc.title} secondary={secondary} />
+      {doc.status === "draft" && <Chip size="small" color="warning" label="Draft" />}
+    </ListItemButton>
+    {doc.status === "draft" && (
+      <Tooltip title="Delete draft">
+        <IconButton size="small" aria-label={`Delete draft ${doc.title}`} onClick={onDelete}>
+          <DeleteOutline fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    )}
+  </Stack>
+);
 
 const NOTE_TEMPLATES = {
   soap: "## Subjective\n\n\n## Objective\n\n\n## Assessment\n\n\n## Plan\n",
@@ -182,6 +205,7 @@ export const ClientDetail = () => {
   const profile = useQuery({ queryKey: ["profile"], queryFn: async () => (await api.get<Profile>("profile/")).data });
   const [addingSession, setAddingSession] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [deleting, setDeleting] = useState<{ id: number; client_id: number; title: string } | null>(null);
   const client = useQuery({ queryKey: ["practice-client", id], queryFn: async () => (await api.get<PracticeClient>(`practice/clients/${id}/`)).data });
   const timeline = useQuery({ queryKey: ["timeline", id], queryFn: async () => (await api.get<Timeline>(`practice/clients/${id}/timeline/`)).data, enabled: client.data?.relationship?.status === "active" });
   const resend = useMutation({ mutationFn: () => api.post(`practice/clients/${id}/resend-invite/`) });
@@ -253,10 +277,8 @@ export const ClientDetail = () => {
                         {s.status !== "completed" && <Chip size="small" label={s.status} sx={{ ml: 1, height: 20 }} />}
                       </Typography>
                       {s.documents.map((d) => (
-                        <ListItemButton key={d.id} dense onClick={() => openDoc(d.id)} sx={{ borderRadius: 2, pl: 1.5 }}>
-                          <ListItemText primary={d.title} secondary={`${DOC_LABELS[d.doc_type]}${d.imported_from ? " · imported" : ""}`} />
-                          {d.status === "draft" && <Chip size="small" color="warning" label="Draft" />}
-                        </ListItemButton>
+                        <DocumentRow key={d.id} doc={d} secondary={`${DOC_LABELS[d.doc_type]}${d.imported_from ? " · imported" : ""}`}
+                                     onOpen={() => openDoc(d.id)} onDelete={() => setDeleting({ id: d.id, client_id: id, title: d.title })} />
                       ))}
                     </Box>
                   ))}
@@ -264,9 +286,8 @@ export const ClientDetail = () => {
                     <Box>
                       <Typography variant="subtitle2">Other documents</Typography>
                       {timeline.data.other_documents.map((d) => (
-                        <ListItemButton key={d.id} dense onClick={() => openDoc(d.id)} sx={{ borderRadius: 2, pl: 1.5 }}>
-                          <ListItemText primary={d.title} secondary={`${DOC_LABELS[d.doc_type]} · ${formatDate(d.created_at)}`} />
-                        </ListItemButton>
+                        <DocumentRow key={d.id} doc={d} secondary={`${DOC_LABELS[d.doc_type]} · ${formatDate(d.created_at)}`}
+                                     onOpen={() => openDoc(d.id)} onDelete={() => setDeleting({ id: d.id, client_id: id, title: d.title })} />
                       ))}
                     </Box>
                   )}
@@ -286,6 +307,7 @@ export const ClientDetail = () => {
                                    open={drafting} onClose={() => setDrafting(false)} />
       )}
       <ImportRecordsDialog clientId={id} open={importing} onClose={() => setImporting(false)} />
+      <DeleteDraftDialog draft={deleting} onClose={() => setDeleting(null)} />
       {addingSession && <ScheduleSessionDialog clientId={id} open onClose={() => setAddingSession(false)} />}
     </Container>
   );

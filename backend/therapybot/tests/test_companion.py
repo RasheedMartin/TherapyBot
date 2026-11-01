@@ -589,6 +589,8 @@ class WorkflowTests(APITestCase):
         links = self.client.post("/api/account/calendar-feed/").data
         self.assertTrue(links["webcal_url"].startswith("webcal://"))
         self.assertIn("calendar.google.com", links["google_url"])
+        self.assertTrue(links["outlook_url"].startswith("https://outlook.live.com/calendar/0/addfromweb?url="))
+        self.assertTrue(links["office365_url"].startswith("https://outlook.office.com/calendar/0/addfromweb?url="))
 
         # Links use the configured public API address, whatever host the request came in on
         self.assertTrue(links["url"].startswith(f"{settings.API_BASE_URL}/api/calendar/"))

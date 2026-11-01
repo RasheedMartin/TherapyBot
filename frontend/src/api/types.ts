@@ -157,6 +157,8 @@ export interface CalendarFeed {
   url?: string;
   webcal_url?: string;
   google_url?: string;
+  outlook_url?: string;
+  office365_url?: string;
 }
 
 export type PlanDraft = Pick<Plan, "title" | "summary" | "conversation" | "steps">;
