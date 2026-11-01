@@ -38,8 +38,11 @@ from therapybot.views.clinical import (
 )
 from therapybot.views.screenings import (
     acknowledge_risk_flag,
+    client_checkin_detail,
+    client_checkins,
     client_screenings,
     instruments,
+    my_checkins,
     my_screenings,
     risk_flags,
     screening_template_detail,
@@ -99,8 +102,11 @@ from therapybot.views.plans import (
 
 __all__ = [
     "acknowledge_risk_flag",
+    "client_checkin_detail",
+    "client_checkins",
     "client_screenings",
     "instruments",
+    "my_checkins",
     "my_screenings",
     "risk_flags",
     "add_addendum",

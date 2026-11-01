@@ -384,6 +384,41 @@ export interface Instrument {
   risk_item: number | null;
 }
 
+export type CheckInRepeat = "once" | "weekly" | "biweekly" | "monthly";
+
+export const CHECK_IN_REPEATS: { value: CheckInRepeat; label: string }[] = [
+  { value: "once", label: "Once" },
+  { value: "weekly", label: "Every week" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+];
+
+/** A check-in sent to a client, as the therapist sees it. */
+export interface CheckInAssignment {
+  id: number;
+  instrument: string;
+  instrument_name: string;
+  repeat: CheckInRepeat;
+  note: string;
+  due_on: string;
+  active: boolean;
+  last_completed_on: string | null;
+  created_at: string;
+}
+
+/** A check-in as the client sees it: open now (due) or coming up. */
+export interface MyCheckIn {
+  id: number;
+  due: boolean;
+  due_on: string;
+  repeat: CheckInRepeat;
+  note: string;
+  therapist_name: string;
+  relationship: number | null;
+  last_completed_on: string | null;
+  instrument: Instrument;
+}
+
 /** A practice's own questionnaire. */
 export interface ScreeningTemplate {
   id: number;

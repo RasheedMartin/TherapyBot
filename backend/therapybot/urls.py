@@ -77,6 +77,10 @@ urlpatterns = [
     path("practice/screening-templates/<int:template_id>/", views.screening_template_detail,
          name="practice-screening-template"),
     path("screenings/mine/", views.my_screenings, name="my-screenings"),
+    path("screenings/checkins/", views.my_checkins, name="my-checkins"),
+    path("practice/clients/<int:pk>/checkins/", views.client_checkins, name="client-checkins"),
+    path("practice/clients/<int:pk>/checkins/<int:assignment_id>/", views.client_checkin_detail,
+         name="client-checkin"),
     # Clients: their care team
     path("care-team/", views.care_team, name="care-team"),
     path("care-team/sessions/", views.my_sessions, name="care-team-sessions"),
