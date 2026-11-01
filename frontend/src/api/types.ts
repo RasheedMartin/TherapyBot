@@ -249,12 +249,25 @@ export const MODALITIES: { value: Modality; label: string }[] = [
   { value: "integrative", label: "Integrative / other" },
 ];
 
-export interface SessionWithDocuments {
+export type SessionStatus = "scheduled" | "completed" | "cancelled";
+
+export interface SessionInfo {
   id: number;
   date: string;
+  start_time: string | null; // "HH:MM:SS", the therapist's local time
+  duration_minutes: number;
   modality: Modality;
-  status: "scheduled" | "completed" | "cancelled";
+  status: SessionStatus;
+}
+
+export interface SessionWithDocuments extends SessionInfo {
   documents: DocumentSummary[];
+}
+
+/** A session on the therapist's schedule, across clients. */
+export interface ScheduledSession extends SessionInfo {
+  client_id: number;
+  client_name: string;
 }
 
 export interface Timeline {
@@ -379,6 +392,7 @@ export interface CareTeamMember {
   share_chat_summaries: boolean;
   share_raw_chat: boolean;
   next_session: string | null;
+  next_session_time: string | null;
 }
 
 export interface InvitePreview {

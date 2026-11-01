@@ -13,8 +13,23 @@ def _name(user) -> str:
 class SessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Session
-        fields = ("id", "date", "modality", "status", "created_at")
+        fields = ("id", "date", "start_time", "duration_minutes", "modality", "status", "created_at")
         read_only_fields = ("created_at",)
+
+    def validate_duration_minutes(self, value):
+        if not 10 <= value <= 240:
+            raise serializers.ValidationError("Sessions are between 10 and 240 minutes.")
+        return value
+
+
+class ScheduledSessionSerializer(SessionSerializer):
+    """A session on the therapist's schedule, across clients."""
+
+    client_id = serializers.IntegerField(source="client.pk", read_only=True)
+    client_name = serializers.CharField(source="client.display_name", read_only=True)
+
+    class Meta(SessionSerializer.Meta):
+        fields = SessionSerializer.Meta.fields + ("client_id", "client_name")
 
 
 class ClinicalDocumentSerializer(serializers.ModelSerializer):

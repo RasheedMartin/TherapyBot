@@ -20,8 +20,32 @@ import type { CalendarFeed } from "../../api/types";
 
 const FEED_KEY = ["calendar-feed"];
 
-/** Subscribe a calendar app to a private, auto-updating feed of the user's plans. */
-export const CalendarSyncDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+const COPY = {
+  plans: {
+    title: "Sync plans to your calendar",
+    intro: "Subscribe once and your plan steps, and any therapy sessions you have scheduled, appear in your calendar. When something changes, your calendar updates on its own.",
+    privacy: "Keep this link private: anyone with it can see your plan.",
+    discreet: "Show events as “Personal check-in” or “Appointment” so others who see your calendar don't see the details.",
+  },
+  sessions: {
+    title: "Sync sessions to your calendar",
+    intro: "Subscribe once and your scheduled sessions appear in your calendar, updating when you reschedule or cancel. Clients appear by initials only.",
+    privacy: "Keep this link private: anyone with it can see your session times.",
+    discreet: "Show sessions as “Appointment”, without client initials.",
+  },
+};
+
+/** Subscribe a calendar app to a private, auto-updating feed of the user's plans and sessions. */
+export const CalendarSyncDialog = ({
+  open,
+  onClose,
+  variant = "plans",
+}: {
+  open: boolean;
+  onClose: () => void;
+  variant?: keyof typeof COPY;
+}) => {
+  const copy = COPY[variant];
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const feed = useQuery({
@@ -41,11 +65,10 @@ export const CalendarSyncDialog = ({ open, onClose }: { open: boolean; onClose: 
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Sync plans to your calendar</DialogTitle>
+      <DialogTitle>{copy.title}</DialogTitle>
       <DialogContent>
         <Typography color="text.secondary" mb={2}>
-          Subscribe once and your plan steps appear as recurring events. When you edit a plan, your calendar updates on
-          its own.
+          {copy.intro}
         </Typography>
         {feed.isError && <Alert severity="error">{getErrorMessage(feed.error)}</Alert>}
 
@@ -79,8 +102,7 @@ export const CalendarSyncDialog = ({ open, onClose }: { open: boolean; onClose: 
                 </Button>
               </Stack>
               <Typography variant="caption" color="text.secondary">
-                Keep this link private: anyone with it can see your plan. Google Calendar can take a few hours to pick up
-                changes.
+                {copy.privacy} Google Calendar can take a few hours to pick up changes.
               </Typography>
             </Box>
             <FormControlLabel
@@ -94,7 +116,7 @@ export const CalendarSyncDialog = ({ open, onClose }: { open: boolean; onClose: 
                 <Box>
                   <Typography>Discreet titles</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Show events as “Personal check-in” so others who see your calendar don't see the details.
+                    {copy.discreet}
                   </Typography>
                 </Box>
               }

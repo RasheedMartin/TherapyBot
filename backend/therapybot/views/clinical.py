@@ -5,9 +5,10 @@ permissions.authorize_client first; AI drafts are always saved as drafts for the
 """
 
 import logging
+from datetime import date, timedelta
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import Http404
 from django.utils import timezone
 from rest_framework import status
@@ -17,13 +18,14 @@ from rest_framework.response import Response
 from therapybot import audit, between_sessions
 from therapybot.clinical import assistant, importing
 from therapybot.documents import UnreadableFile, extract_text
-from therapybot.models import ClinicalDocument, Plan, Session, TreatmentPlan
+from therapybot.models import CareRelationship, ClinicalDocument, Plan, Session, TreatmentPlan
 from therapybot.permissions import active_relationship, authorize_client
 from therapybot.serializers import (
     ClinicalDocumentSerializer,
     DocumentSummarySerializer,
     ImportedDocumentSerializer,
     PlanSerializer,
+    ScheduledSessionSerializer,
     SessionSerializer,
     TreatmentPlanSerializer,
     save_goals,
@@ -56,6 +58,9 @@ def _session(client, session_id):
     return session
 
 
+MAX_REPEAT_WEEKS = 12
+
+
 # --- The record ------------------------------------------------------------------------------------
 
 
@@ -79,12 +84,67 @@ def timeline(request, pk):
 @api_view(["POST"])
 @permission_classes(THERAPIST)
 def create_session(request, pk):
+    """Add a session. With repeat_weeks (1-12), also schedule that many weekly sessions after it."""
     client = authorize_client(request.user, pk, "session.create", request=request)
     serializer = SessionSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    session = serializer.save(client=client, therapist=request.user)
-    audit.record(request.user, "session.create", request=request, client=client, obj=session)
-    return Response(SessionSerializer(session).data, status=status.HTTP_201_CREATED)
+    try:
+        repeat = int(request.data.get("repeat_weeks") or 0)
+    except (TypeError, ValueError):
+        repeat = -1
+    if not 0 <= repeat <= MAX_REPEAT_WEEKS:
+        return Response({"repeat_weeks": [f"Repeat for 0 to {MAX_REPEAT_WEEKS} weeks."]}, status=400)
+    with transaction.atomic():
+        session = serializer.save(client=client, therapist=request.user)
+        for week in range(1, repeat + 1):
+            Session.objects.create(
+                client=client, therapist=request.user, date=session.date + timedelta(weeks=week),
+                start_time=session.start_time, duration_minutes=session.duration_minutes, modality=session.modality,
+                status=Session.Status.SCHEDULED,
+            )
+    audit.record(request.user, "session.create", request=request, client=client, obj=session, repeat_weeks=repeat)
+    return Response({**SessionSerializer(session).data, "created": repeat + 1}, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PATCH"])
+@permission_classes(THERAPIST)
+def session_detail(request, pk, session_id):
+    """Reschedule a session, or mark it completed or cancelled."""
+    client = authorize_client(request.user, pk, "session.edit", request=request)
+    session = _session(client, session_id)
+    serializer = SessionSerializer(session, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    session = serializer.save()
+    audit.record(request.user, "session.edit", request=request, client=client, obj=session,
+                 fields=sorted(serializer.validated_data))
+    return Response(SessionSerializer(session).data)
+
+
+@api_view(["GET"])
+@permission_classes(THERAPIST)
+def schedule(request):
+    """The therapist's sessions across all clients currently in their care, for a date range (default this week)."""
+    today = timezone.localdate()
+    try:
+        start = date.fromisoformat(request.query_params.get("start") or "")
+    except ValueError:
+        start = today - timedelta(days=today.weekday())
+    try:
+        end = date.fromisoformat(request.query_params.get("end") or "")
+    except ValueError:
+        end = start + timedelta(days=6)
+    if end < start or (end - start).days > 62:
+        return Response({"detail": "Choose a range of up to 62 days."}, status=400)
+    sessions = (
+        Session.objects.filter(
+            therapist=request.user, date__range=(start, end),
+            client__relationships__therapist=request.user,
+            client__relationships__status=CareRelationship.Status.ACTIVE,
+        )
+        .select_related("client").distinct().order_by("date", F("start_time").asc(nulls_first=True))
+    )
+    audit.record(request.user, "schedule.view", request=request, count=len(sessions))
+    return Response({"start": start, "end": end, "sessions": ScheduledSessionSerializer(sessions, many=True).data})
 
 
 @api_view(["POST"])

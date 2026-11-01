@@ -2,11 +2,12 @@
 
 import logging
 import secrets
-from datetime import date
+from datetime import date, timedelta
 from urllib.parse import quote
 
 from django.conf import settings
 from django.core import signing
+from django.db.models import F
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -23,15 +24,18 @@ from rest_framework.response import Response
 from therapybot import ai, reminders
 from therapybot.calendar_feed import render_calendar
 from therapybot.models import (
+    CareRelationship,
     Conversation,
     Plan,
     PlanStep,
     Profile,
+    Session,
     StepCheckIn,
 )
 from therapybot.serializers import (
     PlanSerializer,
     PlanStepSerializer,
+    therapist_display_name,
 )
 from therapybot.verification import (
     is_email_verified,
@@ -173,6 +177,33 @@ def calendar_feed_settings(request):
     return Response(_feed_urls(request, profile))
 
 
+CALENDAR_PAST_DAYS = 60
+
+
+def _initials(name: str) -> str:
+    return "".join(f"{part[0].upper()}." for part in name.split()[:3] if part) or "Client"
+
+
+def calendar_sessions(profile) -> list:
+    """
+    Sessions for someone's calendar feed, with titles. Therapists see clients by initials only, since feeds
+    sync into third-party calendars; clients see their therapist's name. Only active care relationships.
+    """
+    since = timezone.localdate() - timedelta(days=CALENDAR_PAST_DAYS)
+    active = CareRelationship.Status.ACTIVE
+    if profile.role == Profile.Role.THERAPIST:
+        sessions = Session.objects.filter(
+            therapist=profile.user, date__gte=since,
+            client__relationships__therapist=profile.user, client__relationships__status=active,
+        ).select_related("client").distinct()
+        return [(s, f"Session · {_initials(s.client.display_name)}") for s in sessions]
+    sessions = Session.objects.filter(
+        client__user=profile.user, date__gte=since,
+        client__relationships__therapist=F("therapist"), client__relationships__status=active,
+    ).select_related("therapist__profile").distinct()
+    return [(s, f"Therapy session · {therapist_display_name(s.therapist)}") for s in sessions]
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @authentication_classes([])
@@ -186,7 +217,9 @@ def calendar_feed(request, token):
         .select_related("plan")
         .prefetch_related("check_ins")
     )
-    body = render_calendar("TherapyBot plans", steps, discreet=profile.calendar_discreet)
+    sessions = calendar_sessions(profile)
+    name = "TherapyBot sessions" if profile.role == Profile.Role.THERAPIST else "TherapyBot plans"
+    body = render_calendar(name, steps, discreet=profile.calendar_discreet, sessions=sessions)
     response = HttpResponse(body, content_type="text/calendar; charset=utf-8")
     response["Cache-Control"] = "private, max-age=900"
     return response

@@ -19,6 +19,7 @@ import {
   type SavedProvider,
 } from "../api/types";
 import { TodayList } from "../components/plans/TodayList";
+import { formatTime } from "../components/practice/format";
 import { PLANS_KEY } from "../components/plans/useCheckIn";
 import { useAuth } from "../context/AuthContext";
 import { LinkButton } from "../components/RouterLink";
@@ -101,7 +102,9 @@ export const Dashboard = () => {
         <Typography fontWeight={600}>{therapist.therapist_name}</Typography>
         <Typography color="text.secondary">
           {therapist.next_session
-            ? `Next session: ${formatSessionDate(therapist.next_session)}`
+            ? `Next session: ${formatSessionDate(therapist.next_session)}${
+                therapist.next_session_time ? ` at ${formatTime(therapist.next_session_time)}` : ""
+              }`
             : "No upcoming session scheduled yet."}
         </Typography>
       </Card>

@@ -64,25 +64,34 @@ class CareTeamSerializer(serializers.ModelSerializer):
     therapist_name = serializers.SerializerMethodField()
     practice_name = serializers.CharField(source="client.practice.name", read_only=True)
     next_session = serializers.SerializerMethodField()
+    next_session_time = serializers.SerializerMethodField()
 
     class Meta:
         model = CareRelationship
         fields = ("id", "therapist_name", "practice_name", "status", "invited_at", "consented_at", "ended_at",
-                  "share_checkins", "share_chat_summaries", "share_raw_chat", "next_session")
+                  "share_checkins", "share_chat_summaries", "share_raw_chat", "next_session",
+                  "next_session_time")
         read_only_fields = ("status", "invited_at", "consented_at", "ended_at")
 
     def get_therapist_name(self, rel):
         return therapist_display_name(rel.therapist)
 
-    def get_next_session(self, rel):
-        """The client's next scheduled session with this therapist (date only), for their home page."""
+    def _next(self, rel):
+        """The client's next scheduled session with this therapist, for their home page."""
         if rel.status != CareRelationship.Status.ACTIVE:
             return None
-        session = (
+        return (
             rel.client.sessions.filter(therapist=rel.therapist, status="scheduled", date__gte=timezone.localdate())
-            .order_by("date").first()
+            .order_by("date", "start_time").first()
         )
+
+    def get_next_session(self, rel):
+        session = self._next(rel)
         return session.date.isoformat() if session else None
+
+    def get_next_session_time(self, rel):
+        session = self._next(rel)
+        return session.start_time.strftime("%H:%M:%S") if session and session.start_time else None
 
 
 def therapist_display_name(user: User) -> str:
