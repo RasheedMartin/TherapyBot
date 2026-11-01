@@ -193,7 +193,8 @@ class Command(BaseCommand):
                      f"{len(chunks)} chunks, all from A" if not leaked else str(leaked))
 
         # Shared chat summary for the risk conversation: quotes the words, never softens
-        risky = Conversation.objects.get(user=client_a.user, title="Rough night")
+        # Titles are encrypted, so they can't be matched in SQL
+        risky = next(c for c in Conversation.objects.filter(user=client_a.user) if c.title == "Rough night")
         summary, error, secs = self._call(lambda: between_sessions.care_summary(risky))
         failures = [error] if error else []
         if summary:

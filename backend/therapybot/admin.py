@@ -2,21 +2,11 @@ from django.contrib import admin, messages
 
 from django.utils import timezone
 
-from therapybot.models import AuditEvent, CareRelationship, Client, Conversation, KnowledgeArticle, Message, Practice, PracticeMembership, Profile
+from therapybot.models import AuditEvent, CareRelationship, Client, KnowledgeArticle, Practice, PracticeMembership, Profile
 
 
-class MessageInline(admin.TabularInline):
-    model = Message
-    extra = 0
-    readonly_fields = ("role", "content", "is_crisis", "created_at")
-
-
-@admin.register(Conversation)
-class ConversationAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "title", "therapy_type", "updated_at")
-    list_filter = ("therapy_type",)
-    search_fields = ("title", "user__username")
-    inlines = [MessageInline]
+# Companion conversations are deliberately not registered: clients are told their chats are private,
+# and staff browsing them would break that promise.
 
 
 @admin.register(Profile)

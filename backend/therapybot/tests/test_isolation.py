@@ -177,6 +177,24 @@ class IndexingTests(APITestCase):
         doc.refresh_from_db()
         self.assertIn("panic", doc.text)
 
+    def test_companion_chats_are_encrypted_at_rest(self):
+        from therapybot.models import Conversation
+
+        convo = Conversation.objects.create(user=self.client_record.user or self.therapist, title="Panic at work",
+                                            summary="They described panic at work.")
+        message = convo.messages.create(role="user", content="I had a panic attack in the meeting")
+        with connection.cursor() as cursor:
+            cursor.execute("select title, summary from therapybot_conversation where id = %s", [convo.pk])
+            stored = list(cursor.fetchone())
+            cursor.execute("select content from therapybot_message where id = %s", [message.pk])
+            stored.append(cursor.fetchone()[0])
+        for value in stored:
+            self.assertTrue(value.startswith("enc:v1:"))
+            self.assertNotIn("panic", value.lower())
+        message.refresh_from_db()
+        convo.refresh_from_db()
+        self.assertEqual((convo.title, message.content), ("Panic at work", "I had a panic attack in the meeting"))
+
     def test_unowned_client_record_chunks_are_rejected_by_the_database(self):
         from django.db import IntegrityError, transaction
 

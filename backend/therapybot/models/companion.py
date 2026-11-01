@@ -12,10 +12,11 @@ class Conversation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="conversations")
     # A conversation started from session notes keeps them in context
     note = models.ForeignKey("ClinicalDocument", on_delete=models.SET_NULL, null=True, blank=True, related_name="conversations")
-    title = models.CharField(max_length=120, blank=True)
+    # Chat text is encrypted at rest like clinical records: it's the most personal text in the app
+    title = EncryptedTextField(max_length=120, blank=True)
     therapy_type = models.CharField(max_length=80, default="General Therapy")
     # Running summary of older messages that no longer fit in the model's history window
-    summary = models.TextField(blank=True)
+    summary = EncryptedTextField(blank=True)
     summarized_count = models.PositiveIntegerField(default=0)
     # Clients linked with a therapist can keep a conversation out of what's shared (safety flags excepted)
     shared_with_care_team = models.BooleanField(default=True)
@@ -44,7 +45,7 @@ class Message(models.Model):
 
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
     role = models.CharField(max_length=10, choices=Role.choices)
-    content = models.TextField()
+    content = EncryptedTextField()
     is_crisis = models.BooleanField(default=False)
     # Safety assessment of the user's message (copied onto the reply so the UI can react)
     risk_level = models.CharField(max_length=10, choices=Risk.choices, default=Risk.NONE)
