@@ -93,3 +93,41 @@ class SessionCalendarFeedTests(APITestCase):
         self.rel.status = "ended"
         self.rel.save()
         self.assertNotIn("therapybot-session-", self.feed(self.user))
+
+
+class OverviewTests(APITestCase):
+    def test_what_needs_attention_across_clients_in_care(self):
+        from therapybot.models import ClinicalDocument, RiskFlag
+
+        therapist = self.make_therapist()
+        today = timezone.localdate()
+        jordan, _ = self.link(therapist, self.make_user("jordan", "jordan@example.com"))
+        priya, _ = self.link(therapist, self.make_user("priya", "priya@example.com"))
+        ended, ended_rel = self.link(therapist, self.make_user("bob", "bob@example.com"))
+        ended_rel.status = "ended"
+        ended_rel.save()
+
+        todays = Session.objects.create(client=jordan, therapist=therapist, date=today, start_time=time(9, 0),
+                                        status="scheduled")
+        stale = Session.objects.create(client=jordan, therapist=therapist, date=today - timedelta(days=3),
+                                       status="scheduled")  # never closed out
+        undocumented = Session.objects.create(client=priya, therapist=therapist, date=today - timedelta(days=2))
+        documented = Session.objects.create(client=priya, therapist=therapist, date=today - timedelta(days=9))
+        ClinicalDocument.objects.create(client=priya, session=documented, doc_type="progress_note", status="final",
+                                        title="Note", text="Seen and documented.")
+        draft = ClinicalDocument.objects.create(client=jordan, author=therapist, doc_type="progress_note",
+                                                status="draft", title="Draft", text="To sign.")
+        Session.objects.create(client=ended, therapist=therapist, date=today, status="scheduled")  # not in care
+        RiskFlag.objects.create(client=priya, level="elevated", source_type="screening", reason="PHQ-9 item 9")
+
+        self.login(therapist)
+        data = self.client.get("/api/practice/overview/").data
+        self.assertEqual([s["id"] for s in data["today"]], [todays.pk])
+        self.assertEqual([s["id"] for s in data["to_close"]], [stale.pk])
+        self.assertEqual([s["id"] for s in data["needs_note"]], [undocumented.pk])
+        self.assertEqual([d["id"] for d in data["drafts"]], [draft.pk])
+        self.assertEqual([c["display_name"] for c in data["unscheduled"]], [priya.display_name])
+        self.assertEqual((data["open_flags"], data["active_clients"]), (1, 2))
+
+        self.login(self.make_user("carl", "carl@example.com"))
+        self.assertEqual(self.client.get("/api/practice/overview/").status_code, 403)

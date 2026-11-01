@@ -47,6 +47,7 @@ urlpatterns = [
     path("practice/clients/<int:pk>/sessions/", views.create_session, name="record-sessions"),
     path("practice/clients/<int:pk>/sessions/<int:session_id>/", views.session_detail, name="record-session"),
     path("practice/schedule/", views.schedule, name="practice-schedule"),
+    path("practice/overview/", views.overview, name="practice-overview"),
     path("practice/clients/<int:pk>/documents/", views.create_document, name="record-documents"),
     path("practice/clients/<int:pk>/documents/<int:doc_id>/", views.document_detail, name="record-document"),
     path("practice/clients/<int:pk>/documents/<int:doc_id>/sign/", views.sign_document, name="record-document-sign"),

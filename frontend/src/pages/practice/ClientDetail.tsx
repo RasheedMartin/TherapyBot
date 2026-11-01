@@ -206,7 +206,7 @@ export const ClientDetail = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
-      <LinkButton to="/practice" size="small" sx={{ ml: -1, mb: 1 }}>← All clients</LinkButton>
+      <LinkButton to="/practice/clients" size="small" sx={{ ml: -1, mb: 1 }}>← All clients</LinkButton>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1} mb={3}>
         <Box>
           <Typography variant="h4" component="h1">{c.display_name}</Typography>

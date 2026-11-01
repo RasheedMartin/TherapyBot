@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from therapybot import audit, between_sessions
 from therapybot.clinical import assistant, importing
 from therapybot.documents import UnreadableFile, extract_text
-from therapybot.models import CareRelationship, ClinicalDocument, Plan, Session, TreatmentPlan
+from therapybot.models import CareRelationship, Client, ClinicalDocument, Plan, RiskFlag, Session, TreatmentPlan
 from therapybot.permissions import active_relationship, authorize_client
 from therapybot.serializers import (
     ClinicalDocumentSerializer,
@@ -118,6 +118,59 @@ def session_detail(request, pk, session_id):
     audit.record(request.user, "session.edit", request=request, client=client, obj=session,
                  fields=sorted(serializer.validated_data))
     return Response(SessionSerializer(session).data)
+
+
+NOTES_WINDOW_DAYS = 14
+
+
+@api_view(["GET"])
+@permission_classes(THERAPIST)
+def overview(request):
+    """
+    The therapist's day in one call: today's sessions, and what needs attention across clients in their care:
+    sessions to close out or document, drafts to sign, open safety flags, clients with nothing scheduled.
+    """
+    today = timezone.localdate()
+    in_care = Client.objects.filter(
+        relationships__therapist=request.user, relationships__status=CareRelationship.Status.ACTIVE
+    ).distinct()
+    sessions = Session.objects.filter(therapist=request.user, client__in=in_care).select_related("client")
+
+    todays = sessions.filter(date=today).exclude(status=Session.Status.CANCELLED).order_by(
+        F("start_time").asc(nulls_first=True))
+    recent = sessions.filter(date__range=(today - timedelta(days=NOTES_WINDOW_DAYS), today)).exclude(
+        status=Session.Status.CANCELLED)
+    # Past sessions still marked scheduled haven't been closed out; completed ones without a note need one
+    to_close = recent.filter(status=Session.Status.SCHEDULED, date__lt=today).order_by("-date")
+    documented = ClinicalDocument.objects.filter(
+        session__in=recent, doc_type=ClinicalDocument.DocType.PROGRESS_NOTE).values("session_id")
+    needs_note = recent.filter(status=Session.Status.COMPLETED).exclude(pk__in=documented).order_by("-date")
+    drafts = ClinicalDocument.objects.filter(
+        client__in=in_care, status=ClinicalDocument.Status.DRAFT, author=request.user
+    ).select_related("client").order_by("-updated_at")
+    recently_signed = ClinicalDocument.objects.filter(
+        client__in=in_care, status=ClinicalDocument.Status.FINAL, signed_by=request.user
+    ).select_related("client").order_by("-signed_at")[:10]
+    upcoming = sessions.filter(date__gte=today, status=Session.Status.SCHEDULED).values("client_id")
+    unscheduled = in_care.exclude(pk__in=upcoming).order_by("display_name")
+    open_flags = RiskFlag.objects.filter(client__in=in_care, acknowledged_at__isnull=True).count()
+
+    def doc(d):
+        return {"id": d.id, "client_id": d.client_id, "client_name": d.client.display_name, "title": d.title,
+                "session_date": d.session_date, "updated_at": d.updated_at}
+
+    data = {
+        "today": ScheduledSessionSerializer(todays, many=True).data,
+        "to_close": ScheduledSessionSerializer(to_close, many=True).data,
+        "needs_note": ScheduledSessionSerializer(needs_note, many=True).data,
+        "drafts": [doc(d) for d in drafts[:20]],
+        "recently_signed": [doc(d) for d in recently_signed],
+        "unscheduled": [{"id": c.id, "display_name": c.display_name} for c in unscheduled],
+        "open_flags": open_flags,
+        "active_clients": in_care.count(),
+    }
+    audit.record(request.user, "practice.overview", request=request, clients=data["active_clients"])
+    return Response(data)
 
 
 @api_view(["GET"])

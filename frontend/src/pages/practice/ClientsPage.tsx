@@ -20,15 +20,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { PersonAddAlt1, WarningAmberRounded } from "@mui/icons-material";
+import { PersonAddAlt1 } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import api, { getErrorMessage, getFieldErrors } from "../../api/client";
-import type { PracticeClient, RiskFlag } from "../../api/types";
+import type { PracticeClient } from "../../api/types";
 import { formatDate } from "../../components/practice/format";
 import { SyntheticDataBanner } from "../../components/practice/SyntheticDataBanner";
-import { WeekSchedule } from "../../components/practice/WeekSchedule";
-import { useAuth } from "../../context/AuthContext";
 
 const InviteClientDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const queryClient = useQueryClient();
@@ -71,60 +69,9 @@ const InviteClientDialog = ({ open, onClose }: { open: boolean; onClose: () => v
   );
 };
 
-const RiskFlagInbox = () => {
+/** The therapist's roster: everyone in their care, and inviting someone new. */
+export const ClientsPage = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const flags = useQuery({
-    queryKey: ["risk-flags"],
-    queryFn: async () => (await api.get<RiskFlag[]>("practice/risk-flags/")).data,
-  });
-  const acknowledge = useMutation({
-    mutationFn: (id: number) => api.post(`practice/risk-flags/${id}/acknowledge/`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["risk-flags"] }),
-  });
-  const open = flags.data?.filter((f) => !f.acknowledged_at) ?? [];
-  return (
-    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 4, borderColor: open.length ? "warning.main" : "divider" }}>
-      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-        <WarningAmberRounded color={open.length ? "warning" : "disabled"} />
-        <Typography variant="h6" component="h2">
-          Safety flags
-        </Typography>
-        {!!open.length && <Chip size="small" color="warning" label={open.length} />}
-      </Stack>
-      <Typography variant="body2" color="text.secondary" mb={2}>
-        Raised by screenings and between-session check-ins. Clients are told these aren't monitored in real time.
-      </Typography>
-      {flags.isLoading && <Skeleton height={48} />}
-      {flags.data && open.length === 0 && <Typography color="text.secondary">No open flags.</Typography>}
-      <Stack spacing={1.5}>
-        {open.map((flag) => (
-          <Alert
-            key={flag.id}
-            severity={flag.level === "imminent" ? "error" : "warning"}
-            action={
-              <Stack direction="row" spacing={1}>
-                <Button size="small" color="inherit" onClick={() => navigate({ to: "/practice/clients/$clientId", params: { clientId: String(flag.client_id) } })}>
-                  Open
-                </Button>
-                <Button size="small" color="inherit" onClick={() => acknowledge.mutate(flag.id)}>
-                  Acknowledge
-                </Button>
-              </Stack>
-            }
-          >
-            <strong>{flag.client_name}</strong> · {flag.reason}
-            <Typography variant="caption" display="block">{new Date(flag.created_at).toLocaleString()}</Typography>
-          </Alert>
-        ))}
-      </Stack>
-    </Paper>
-  );
-};
-
-export const PracticeHome = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const [inviting, setInviting] = useState(false);
   const clients = useQuery({
     queryKey: ["practice-clients"],
@@ -138,7 +85,7 @@ export const PracticeHome = () => {
           <Typography variant="h4" component="h1">
             Your clients
           </Typography>
-          <Typography color="text.secondary">Welcome back, {user?.display_name}.</Typography>
+          <Typography color="text.secondary">Open someone's record, or invite a new client to connect.</Typography>
         </Box>
         <Button variant="contained" startIcon={<PersonAddAlt1 />} onClick={() => setInviting(true)} sx={{ flexShrink: 0 }}>
           Invite client
@@ -146,8 +93,7 @@ export const PracticeHome = () => {
       </Stack>
       <Stack spacing={3}>
         <SyntheticDataBanner />
-        <WeekSchedule />
-        <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "3fr 2fr" }, alignItems: "start" }}>
+        <Box>
           <Paper variant="outlined" sx={{ borderRadius: 4, overflow: "hidden" }}>
             {clients.isLoading && <Box p={2}><Skeleton height={56} /><Skeleton height={56} /></Box>}
             {clients.isError && <Alert severity="error">{getErrorMessage(clients.error)}</Alert>}
@@ -184,7 +130,6 @@ export const PracticeHome = () => {
               ))}
             </List>
           </Paper>
-          <RiskFlagInbox />
         </Box>
       </Stack>
       <InviteClientDialog open={inviting} onClose={() => setInviting(false)} />

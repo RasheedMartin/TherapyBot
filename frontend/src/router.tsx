@@ -19,7 +19,10 @@ import { safeRedirect } from "./components/returnTo";
 import { AcceptInvitePage } from "./pages/AcceptInvite";
 import { ClientDetail } from "./pages/practice/ClientDetail";
 import { DocumentPage } from "./pages/practice/DocumentPage";
-import { PracticeHome } from "./pages/practice/PracticeHome";
+import { ClientsPage } from "./pages/practice/ClientsPage";
+import { NotesQueue } from "./pages/practice/NotesQueue";
+import { PracticeOverview } from "./pages/practice/PracticeOverview";
+import { SchedulePage } from "./pages/practice/SchedulePage";
 import { TherapistSignup } from "./pages/practice/TherapistSignup";
 
 const rootRoute = createRootRoute({
@@ -180,15 +183,21 @@ const therapistSignupRoute = createRoute({
   ),
 });
 
-const practiceRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "practice",
-  component: () => (
-    <RequireTherapist>
-      <PracticeHome />
-    </RequireTherapist>
-  ),
-});
+const therapistPage = <TPath extends string>(path: TPath, Page: () => React.ReactNode) =>
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path,
+    component: () => (
+      <RequireTherapist>
+        <Page />
+      </RequireTherapist>
+    ),
+  });
+
+const practiceRoute = therapistPage("practice", PracticeOverview);
+const practiceClientsRoute = therapistPage("practice/clients", ClientsPage);
+const practiceScheduleRoute = therapistPage("practice/schedule", SchedulePage);
+const practiceNotesRoute = therapistPage("practice/notes", NotesQueue);
 
 const practiceClientRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -222,6 +231,9 @@ export const router = createRouter({
     homeRoute,
     therapistSignupRoute,
     practiceRoute,
+    practiceClientsRoute,
+    practiceScheduleRoute,
+    practiceNotesRoute,
     practiceClientRoute,
     practiceDocumentRoute,
     acceptInviteRoute,
