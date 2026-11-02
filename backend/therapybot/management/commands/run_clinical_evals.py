@@ -35,7 +35,9 @@ from therapybot.rag.indexing import index_document
 
 EVALS_DIR = settings.BASE_DIR / "evals"
 MONTHS = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
-SCORE_RE = re.compile(r"(PHQ|GAD)\W*([79])\W{0,3}(?:score|total|of|was|=|:|\s)*\W{0,3}(\d{1,2})\b", re.IGNORECASE)
+# A signed number after the instrument ("GAD-7 (-4)") is a change, not a score
+SCORE_RE = re.compile(r"(PHQ|GAD)\W*([79])\W{0,3}(?:score|total|of|was|=|:|\s)*\W{0,3}(?<![-+‑−])(\d{1,2})\b",
+                      re.IGNORECASE)
 ISO_DATE_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 SHORT_DATE_RE = re.compile(rf"\b({MONTHS})[a-z]*\.?\s+(\d{{1,2}})\b")
 NOT_FOUND_RE = re.compile(
@@ -50,6 +52,20 @@ Score 1 (poor) to 5 (excellent):
 - completeness: the important content of the transcript is captured in the right sections
 - clinical_style: concise, neutral, professional documentation
 Reply with JSON only: {"faithfulness": n, "completeness": n, "clinical_style": n, "comment": "one sentence"}"""
+
+# Terms a client recap must translate or leave out (clinical shorthand, instruments, assessment)
+CLINICAL_TERM_RE = re.compile(
+    r"\bSUDS\b|\bSI\b|\bPHQ|\bGAD|stimulus control|interoceptive|psychoeducation|catastrophic|"
+    r"\bdiagnos|\bassessment\b|\bmoderate\b|\bpassive\b|\bavoidance\b|\bideation\b",
+    re.IGNORECASE,
+)
+
+RECAP_JUDGE_PROMPT = """You are a clinical supervisor reviewing a session recap written for a therapy client from their therapist's note.
+Score 1 (poor) to 5 (excellent):
+- faithfulness: everything in the recap is in the note; no added advice, tips, tracking or homework
+- plain_language: a client with no clinical training understands every sentence
+- warmth: kind and encouraging without being saccharine, and never alarming
+Reply with JSON only: {"faithfulness": n, "plain_language": n, "warmth": n, "comment": "one sentence"}"""
 
 
 class Rollback(Exception):
@@ -280,11 +296,44 @@ class Command(BaseCommand):
         self._record(run, "treatment", "plan-draft", failures, json.dumps(plan, default=str, indent=1) if plan else "",
                      seconds=secs)
 
+        # Session recaps the client reads: plain words, nothing beyond the note, crisis line only when it's relevant
+        for case in self.spec["recaps"]:
+            note = ClinicalDocument(client=client_a, doc_type="progress_note", status="final", text=case["note"],
+                                    session_date=timezone.localdate())  # unsaved, so it isn't indexed
+            recap, error, secs = self._call(lambda n=note: assistant.draft_client_summary(
+                actor=actor, client=client_a, note=n))
+            failures, scores = ([error] if error else []), {}
+            if recap:
+                words = len(recap.split())
+                if not 60 <= words <= 220:
+                    failures.append(f"{words} words")
+                failures += [f"clinical term '{m.group(0)}'" for m in CLINICAL_TERM_RE.finditer(recap)]
+                if ("988" in recap) != case["expect_crisis_line"]:
+                    failures.append("crisis line missing" if case["expect_crisis_line"] else "crisis line in a routine recap")
+                numbers = set(re.findall(r"\d+", case["note"]))
+                # "out of 10" / "out of 100" explain a rating's scale
+                invented = sorted(set(re.findall(r"\d+", recap)) - numbers - {"10", "100"})
+                if invented:
+                    failures.append(f"numbers not in the note: {invented}")
+                if re.search(r"\b(the|your therapist.s) (note|record)\b", recap, re.IGNORECASE):
+                    failures.append("mentions the note")
+                name = self.spec["clients"]["A"]["name"].split()
+                failures += [f"uses the client's name '{n}'" for n in name if re.search(rf"\b{n}\b", recap)]
+                if GENDERED_RE.search(recap):
+                    failures.append(f"gendered pronoun '{GENDERED_RE.search(recap).group(0)}'")
+                failures += [f"canary '{c}'" for c in _canaries_in(recap, self.spec["canaries"])]
+                scores = self._judge(RECAP_JUDGE_PROMPT, f"Therapist's note:\n{case['note']}\n\nRecap:\n{recap}")
+                if scores.get("faithfulness", 5) < 4:
+                    failures.append(f"faithfulness {scores.get('faithfulness')}")
+            self._record(run, "recap", case["id"], failures, recap or "", scores=scores, seconds=secs)
+
     def _judge_note(self, case, draft):
-        prompt = (f"Transcript:\n{case['transcript']}\n\nDraft {case['format'].upper()} note:\n"
-                  f"{assistant.render_note(case['format'], draft['sections'])}")
+        return self._judge(NOTE_JUDGE_PROMPT, f"Transcript:\n{case['transcript']}\n\nDraft {case['format'].upper()} note:\n"
+                                              f"{assistant.render_note(case['format'], draft['sections'])}")
+
+    def _judge(self, system_prompt, prompt):
         try:
-            raw = llm.get_chat_model().complete([llm.system(NOTE_JUDGE_PROMPT), llm.user(prompt)])
+            raw = llm.get_chat_model().complete([llm.system(system_prompt), llm.user(prompt)])
             return json.loads(raw[raw.find("{"): raw.rfind("}") + 1])
         except Exception as e:
             return {"comment": f"judge failed: {e}"}

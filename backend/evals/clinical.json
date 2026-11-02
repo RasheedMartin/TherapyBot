@@ -62,5 +62,17 @@
       "transcript": "T: You mentioned in the app that some days you wonder what the point is. C: Yeah. Some nights I think maybe I shouldn't be here. T: Thank you for telling me. Have you thought about how you would do it? C: Not really, it's more of a feeling. T: Let's make a safety plan together today. C: OK.",
       "expect_risk_flag": true
     }
+  ],
+  "recaps": [
+    {
+      "id": "ordinary-session",
+      "note": "Session 4. Rode 4 stops alone twice, SUDS peak 60. One panic attack this week. Sleep about 6 hours. Assessment: good engagement, avoidance decreasing; GAD-7 11, moderate. Plan: one full commute by subway; begin stimulus control for sleep.",
+      "expect_crisis_line": false
+    },
+    {
+      "id": "risk-session",
+      "note": "Session 5. Client reported passive SI after a hard week ('some nights I think maybe I shouldn't be here'); no plan or intent. Completed a safety plan: warning signs, walking the dog, calling a friend, 988. Full commute by subway twice, SUDS peak 50. HW: keep the sleep diary and keep the safety plan on their phone.",
+      "expect_crisis_line": true
+    }
   ]
 }

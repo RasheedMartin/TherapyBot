@@ -91,4 +91,25 @@ class SummaryGuardTests(APITestCase):
                 return assistant.draft_client_summary(actor=therapist, client=client_record, note=note)
 
         self.assertNotIn("988", draft("Practiced speaking up in meetings."))
+        self.assertEqual(draft("Practiced speaking up in meetings."), "You practiced speaking up.")  # no stray breaks
         self.assertIn("988", draft("Passive suicidal ideation; safety plan reviewed."))
+
+    def test_the_model_never_sees_the_assessment(self):
+        from therapybot.clinical import assistant
+
+        therapist = self.make_therapist()
+        client_record, _ = self.link(therapist, self.make_user())
+        model = mock.MagicMock()
+        model.complete.return_value = RECAP
+        note = ClinicalDocument(client=client_record, doc_type="progress_note", status="final", text=(
+            "Rode 4 stops alone. Assessment: avoidance decreasing; GAD-7 11, moderate. "
+            "Plan: full commute.\n\n## Assessment\nPassive SI, low risk.\n\n## Plan\nSleep diary."))
+        with mock.patch("therapybot.llm.get_chat_model", return_value=model):
+            assistant.draft_client_summary(actor=therapist, client=client_record, note=note)
+        sent = model.complete.call_args.args[0][1].content
+        for kept in ("Rode 4 stops alone.", "Plan: full commute.", "## Plan\nSleep diary."):
+            self.assertIn(kept, sent)
+        for removed in ("avoidance", "GAD-7", "moderate", "Passive SI"):
+            self.assertNotIn(removed, sent)
+        # The risk lived in the removed assessment, so the model is told about it directly
+        self.assertIn("raises suicide or self-harm risk", sent)
