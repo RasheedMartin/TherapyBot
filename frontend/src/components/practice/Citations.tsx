@@ -44,7 +44,7 @@ const SourceDialog = ({ clientId, citation, onClose }: { clientId: number; citat
       <DialogTitle sx={{ pr: 6 }}>
         {doc.data?.title ?? "Source"}
         <Typography variant="body2" color="text.secondary">
-          [{citation?.label}] {DOC_LABELS[citation?.doc_type ?? "other"]} · {formatDate(citation?.session_date ?? null)}
+          [{citation?.label}] {DOC_LABELS[citation?.doc_type ?? "other"]}, {formatDate(citation?.session_date ?? null)}
         </Typography>
         <IconButton onClick={onClose} aria-label="Close" sx={{ position: "absolute", right: 12, top: 12 }}>
           <Close />
@@ -104,7 +104,7 @@ export const CitationChips = ({
                 size="small"
                 variant="outlined"
                 color="primary"
-                label={`${DOC_LABELS[source.doc_type] ?? "Doc"} · ${formatDate(source.session_date)}`}
+                label={`${DOC_LABELS[source.doc_type] ?? "Doc"}, ${formatDate(source.session_date)}`}
                 onClick={() => setOpen(source)}
                 sx={{ height: 22, fontSize: 12 }}
               />

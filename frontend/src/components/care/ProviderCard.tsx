@@ -44,7 +44,7 @@ export const ProviderCard = forwardRef<HTMLDivElement, ProviderCardProps>(
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {p.specialty}
-            {p.is_organization && " · Practice"}
+            {p.is_organization && " (practice)"}
           </Typography>
         </Box>
         <Tooltip title={saved ? "Remove from shortlist" : "Save to shortlist"}>

@@ -21,15 +21,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import {
-  ChatBubbleOutline,
-  ChecklistRtl,
-  ContentCopy,
-  DeleteOutline,
-  DescriptionOutlined,
-  ExpandMore,
-  UploadFileOutlined,
-} from "@mui/icons-material";
+import { ArrowBack, ChatBubbleOutline, ChecklistRtl, ContentCopy, DeleteOutline, DescriptionOutlined, ExpandMore, UploadFileOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import api, { getErrorMessage, getFieldErrors } from "../api/client";
@@ -243,8 +235,8 @@ export const NoteDetailPage = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 3, md: 6 } }}>
-      <LinkButton to="/notes" size="small" sx={{ mb: 1, ml: -1 }}>
-        ← All notes
+      <LinkButton to="/notes" size="small" startIcon={<ArrowBack />} sx={{ mb: 1, ml: -1 }}>
+        All notes
       </LinkButton>
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2} mb={3}>
         <Box>
@@ -318,7 +310,7 @@ export const NoteDetailPage = () => {
                   <Typography fontWeight={500}>{h.title}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     {describeSchedule(h)}
-                    {h.details && ` · ${h.details}`}
+                    {h.details && `. ${h.details}`}
                   </Typography>
                 </Box>
               ))}

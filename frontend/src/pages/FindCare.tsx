@@ -312,7 +312,7 @@ export const FindCarePage = () => {
                 {s.details.credential && `, ${s.details.credential}`}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {s.details.specialty} · {s.details.city}, {s.details.state}
+                {s.details.specialty} in {s.details.city}, {s.details.state}
               </Typography>
             </Box>
             <IconButton size="small" aria-label="Remove from shortlist" onClick={() => remove.mutate(s.id)}>

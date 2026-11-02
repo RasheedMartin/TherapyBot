@@ -2,7 +2,7 @@ import { Alert, Box, Button, Checkbox, Chip, Paper, Stack, Tooltip, Typography }
 import { LocalFireDepartment, PersonSearchOutlined } from "@mui/icons-material";
 import { useNavigate } from "@tanstack/react-router";
 import type { Plan } from "../../api/types";
-import { describeSchedule, isDoneOn, isDueOn, streak } from "./schedule";
+import { describeSchedule, lowerFirst, isDoneOn, isDueOn, streak } from "./schedule";
 import { useCheckIn } from "./useCheckIn";
 
 export /** Jumps from a "contact a therapist" step to the Find care shortlist. */
@@ -64,7 +64,7 @@ export const TodayList = ({ plans }: { plans: Plan[] }) => {
                   {step.title}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {plan.title} · {describeSchedule(step)}
+                  {plan.title}: {lowerFirst(describeSchedule(step))}
                 </Typography>
               </Box>
               {step.action === "find_care" && !done && (

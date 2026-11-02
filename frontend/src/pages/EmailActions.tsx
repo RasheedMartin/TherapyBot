@@ -46,7 +46,7 @@ export const QuickCheckInPage = () => {
             {done && <CheckCircleOutline color="primary" sx={{ fontSize: 56, alignSelf: "center" }} />}
             <Typography variant="h6">{info.data.step}</Typography>
             <Typography color="text.secondary">
-              {info.data.plan} · {formatDay(info.data.date)}
+              {info.data.plan}, {formatDay(info.data.date)}
             </Typography>
             {done ? (
               <Typography>Marked as done. Every small step counts.</Typography>

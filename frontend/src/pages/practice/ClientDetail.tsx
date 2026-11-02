@@ -24,7 +24,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { Add, AutoAwesomeOutlined, DeleteOutline, EditNoteOutlined, UploadFileOutlined } from "@mui/icons-material";
+import { Add, ArrowBack, AutoAwesomeOutlined, DeleteOutline, EditNoteOutlined, UploadFileOutlined } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import api, { getErrorMessage } from "../../api/client";
@@ -47,7 +47,7 @@ import { ScreeningsPanel } from "../../components/practice/ScreeningsPanel";
 import { SyntheticDataBanner } from "../../components/practice/SyntheticDataBanner";
 import { TreatmentPlanPanel } from "../../components/practice/TreatmentPlanPanel";
 import { PlanEditor } from "../../components/plans/PlanEditor";
-import { describeSchedule } from "../../components/plans/schedule";
+import { describeSchedule, lowerFirst } from "../../components/plans/schedule";
 import { LinkButton } from "../../components/RouterLink";
 
 const DOC_LABELS: Record<string, string> = {
@@ -124,7 +124,7 @@ const DraftFromTranscriptDialog = ({ clientId, sessions, open, onClose }: {
               </ToggleButtonGroup>
               <TextField select size="small" label="Session" value={session} onChange={(e) => setSession(Number(e.target.value) || "")} sx={{ minWidth: 220 }}>
                 <MenuItem value="">Not linked to a session</MenuItem>
-                {sessions.map((s) => <MenuItem key={s.id} value={s.id}>{formatDate(s.date)} · {s.status}</MenuItem>)}
+                {sessions.map((s) => <MenuItem key={s.id} value={s.id}>{formatDate(s.date)} ({s.status})</MenuItem>)}
               </TextField>
             </Stack>
             <TextField multiline minRows={10} value={source} onChange={(e) => setSource(e.target.value)}
@@ -180,7 +180,7 @@ const HomeworkPanel = ({ clientId, hasAccount }: { clientId: number; hasAccount:
           plan.steps.map((step) => (
             <Box key={step.id}>
               <Typography fontWeight={500}>{step.title}</Typography>
-              <Typography variant="caption" color="text.secondary">{plan.title} · {describeSchedule(step)}</Typography>
+              <Typography variant="caption" color="text.secondary">{plan.title}: {lowerFirst(describeSchedule(step))}</Typography>
             </Box>
           )),
         )}
@@ -231,7 +231,7 @@ export const ClientDetail = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
-      <LinkButton to="/practice/clients" size="small" sx={{ ml: -1, mb: 1 }}>← All clients</LinkButton>
+      <LinkButton to="/practice/clients" size="small" startIcon={<ArrowBack />} sx={{ ml: -1, mb: 1 }}>All clients</LinkButton>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1} mb={3}>
         <Box>
           <Typography variant="h4" component="h1">{c.display_name}</Typography>
@@ -259,7 +259,7 @@ export const ClientDetail = () => {
               <Panel
                 title="Sessions & notes"
                 action={
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     <Button size="small" onClick={() => setAddingSession(true)}>Add session</Button>
                     <Button size="small" startIcon={<UploadFileOutlined />} onClick={() => setImporting(true)}>Import</Button>
                     <Button size="small" startIcon={<EditNoteOutlined />} onClick={() => newNote.mutate()} disabled={newNote.isPending}>New note</Button>
@@ -274,11 +274,12 @@ export const ClientDetail = () => {
                   {timeline.data?.sessions.map((s) => (
                     <Box key={s.id} sx={{ mb: 1.5 }}>
                       <Typography variant="subtitle2">
-                        {formatDate(s.date)}{s.start_time && `, ${formatTime(s.start_time)}`} · {MODALITIES.find((m) => m.value === s.modality)?.label}
-                        {s.status !== "completed" && <Chip size="small" label={s.status} sx={{ ml: 1, height: 20 }} />}
+                        {formatDate(s.date)}{s.start_time && `, ${formatTime(s.start_time)}`}, {MODALITIES.find((m) => m.value === s.modality)?.label}
+                        {s.status !== "completed" && <Chip size="small" label={s.status === "scheduled" ? "Scheduled" : "Cancelled"} sx={{ ml: 1, height: 20 }} />}
                       </Typography>
                       {s.documents.map((d) => (
-                        <DocumentRow key={d.id} doc={d} secondary={`${DOC_LABELS[d.doc_type]}${d.imported_from ? " · imported" : ""}`}
+                        <DocumentRow key={d.id} doc={d}
+                                     secondary={d.status === "draft" ? "Draft, not signed" : d.imported_from ? `Imported from ${d.imported_from}` : d.doc_type === "progress_note" ? "Signed" : DOC_LABELS[d.doc_type]}
                                      onOpen={() => openDoc(d.id)} onDelete={() => setDeleting({ id: d.id, client_id: id, title: d.title })} />
                       ))}
                     </Box>
@@ -287,7 +288,7 @@ export const ClientDetail = () => {
                     <Box>
                       <Typography variant="subtitle2">Other documents</Typography>
                       {timeline.data.other_documents.map((d) => (
-                        <DocumentRow key={d.id} doc={d} secondary={`${DOC_LABELS[d.doc_type]} · ${formatDate(d.created_at)}`}
+                        <DocumentRow key={d.id} doc={d} secondary={`${DOC_LABELS[d.doc_type]}, ${formatDate(d.created_at)}`}
                                      onOpen={() => openDoc(d.id)} onDelete={() => setDeleting({ id: d.id, client_id: id, title: d.title })} />
                       ))}
                     </Box>

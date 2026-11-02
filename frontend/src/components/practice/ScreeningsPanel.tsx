@@ -255,7 +255,7 @@ export const ScreeningsPanel = ({ clientId }: { clientId: number }) => {
             </Typography>
             {points.length > 1 && (
               <LineChart
-                height={170}
+                height={180}
                 margin={{ left: 0, right: 28, top: 16, bottom: 0 }}
                 xAxis={[{
                   scaleType: "point",

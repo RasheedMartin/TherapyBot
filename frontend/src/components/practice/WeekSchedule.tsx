@@ -62,7 +62,7 @@ const SessionChip = ({ session, onClick }: { session: ScheduledSession; onClick:
       }}
     >
       <Typography variant="caption" color="text.secondary" display="block">
-        {formatTime(session.start_time)} · {session.duration_minutes} min
+        {formatTime(session.start_time)}, {session.duration_minutes} min
       </Typography>
       <Typography variant="body2" fontWeight={600} noWrap sx={{ textDecoration: cancelled ? "line-through" : "none" }}>
         {session.client_name}

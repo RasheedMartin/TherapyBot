@@ -56,7 +56,7 @@ export const RiskFlagInbox = () => {
               </Stack>
             }
           >
-            <strong>{flag.client_name}</strong> · {flag.reason}
+            <strong>{flag.client_name}</strong>: {flag.reason}
             <Typography variant="caption" display="block">{new Date(flag.created_at).toLocaleString()}</Typography>
           </Alert>
         ))}

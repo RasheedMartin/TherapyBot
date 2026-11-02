@@ -2,7 +2,7 @@ import { Box, Container, Link, Stack, Typography } from "@mui/material";
 import { RouterLink } from "./RouterLink";
 
 export const Footer = () => (
-  <Box component="footer" sx={{ borderTop: 1, borderColor: "divider", py: 4, mt: 6 }}>
+  <Box component="footer" sx={{ borderTop: 1, borderColor: "divider", py: 4 }}>
     <Container maxWidth="md" sx={{ textAlign: "center" }}>
       <Typography variant="body2" color="text.secondary" gutterBottom>
         TherapyBot is an AI support tool, not a replacement for a licensed professional.

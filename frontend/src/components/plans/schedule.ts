@@ -61,3 +61,6 @@ export const describeSchedule = (step: PlanStep) => {
   const time = new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   return `${when} at ${time}`;
 };
+
+/** "Every day at 8:00 AM" -> "every day at 8:00 AM", for use mid-sentence. */
+export const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);

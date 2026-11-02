@@ -123,8 +123,7 @@ export const ProviderMap = ({ providers, center, selected, saved, userLocation, 
                     </Typography>
                     <Typography variant="caption" component="div" color="text.secondary">
                       {p.specialty}
-                      {p.phone && " · "}
-                      {p.phone && <a href={`tel:${p.phone}`}>{p.phone}</a>}
+                      {p.phone && <Box component="span" display="block"><a href={`tel:${p.phone}`}>{p.phone}</a></Box>}
                     </Typography>
                   </Box>
                 ))}
