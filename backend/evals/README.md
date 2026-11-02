@@ -36,5 +36,6 @@ deterministic wherever possible:
 | ask | Known answers present and cited; "not in the record" for medications and for B's details |
 | note | No numbers absent from the transcript, no invented denials, risk transcripts get a review flag; judge scores faithfulness (fail below 4) |
 | treatment | Goals present and cited; same leakage and invention checks as prep |
+| recap | Session recaps for the client: no clinical terms or assessment, no numbers absent from the note, no name or gendered pronouns, 988 only when the note raises risk; judge scores faithfulness (fail below 4) |
 
 Add cases by editing `clinical.json`; keep everything invented.

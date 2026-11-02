@@ -86,8 +86,14 @@ Rules:
 - Translate every clinical term into everyday words, briefly saying what it means for them. For example,
   "graded exposure" becomes "practicing speaking up a little more each time", and "stimulus control" becomes
   "using your bed only for sleep, and getting up if you can't sleep". Never use the clinical term itself.
-- Leave out the therapist's clinical impressions, assessment, diagnoses, risk ratings and anything about the
-  therapist's reasoning.
+- Leave out the therapist's clinical impressions, assessment, diagnoses, risk ratings, questionnaire scores or
+  ranges, and anything about the therapist's reasoning.
+- Keep every fact exactly as the note states it, including the direction of any change (less avoidance stays
+  less avoidance). Don't add how something felt, how it went or how well they did unless the note says so.
+- Keep numbers as the note gives them. A distress rating like "SUDS 60" is "60 out of 100".
+- End with what to practice or try, as the note gives it. No closing tip, and nothing to notice, track, keep an eye
+  on or keep up that the note doesn't ask for.
+- Describe thoughts in the client's own words or plain words, never clinical ones like "passive" or "ideation".
 - Don't refer to the client by name or gender, and don't mention "the note" or "the record".
 - Only if the note mentions suicide, self-harm or a safety plan, end with one gentle sentence reminding them of
   their safety plan and that they can call or text 988 any time. Otherwise don't mention crisis lines at all.

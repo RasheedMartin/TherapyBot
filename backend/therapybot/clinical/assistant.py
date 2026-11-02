@@ -178,14 +178,45 @@ def evidence_for(labels: list[str], sources_payload: list[dict]) -> list[dict]:
     return [by_label[label] for label in labels if label in by_label]
 
 
+# "## Assessment" up to the next heading, or "Assessment: ..." up to the next "Plan:"-style label or paragraph
+_ASSESSMENT_HEADING_RE = re.compile(r"^#{1,6}\s*assessment\b.*?(?=^#{1,6}\s|\Z)", re.IGNORECASE | re.MULTILINE | re.DOTALL)
+_ASSESSMENT_INLINE_RE = re.compile(
+    r"\bassessment\s*:.*?(?=\b(?:plan|hw|homework|data|subjective|objective|interventions?)\s*:|\n\s*\n|\Z)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def without_assessment(text: str) -> str:
+    """
+    The note minus its assessment. Recaps leave out the therapist's clinical impressions, and the model
+    can't be relied on to drop them (in evals it repeated severity ranges and reversed "avoidance decreasing").
+    """
+    return _ASSESSMENT_INLINE_RE.sub("", _ASSESSMENT_HEADING_RE.sub("", text)).strip()
+
+
+# Clinical shorthand the chat-oriented safety.mentions_risk doesn't look for ("passive SI", "NSSI");
+# case-sensitive, so "si" in prose doesn't count
+_NOTE_RISK_ABBREV_RE = re.compile(r"\b(?:N?SSI|SI)\b")
+
+
+def note_raises_risk(text: str) -> bool:
+    return safety.mentions_risk(text) or bool(_NOTE_RISK_ABBREV_RE.search(text)) or "safety plan" in text.lower()
+
+
 def draft_client_summary(*, actor, client: Client, note, request=None) -> str:
     """A plain-language recap of a signed note, written for the client. Unsaved; the therapist edits it."""
+    raises_risk = note_raises_risk(note.text)
+    # Risk can be documented in the assessment that's removed, so the model is told about it directly
+    safety_line = "\nThe note raises suicide or self-harm risk or a safety plan." if raises_risk else ""
     text = llm.get_chat_model().complete([
         llm.system(prompts.CLIENT_SUMMARY_PROMPT),
-        llm.user(f"Session date: {note.session_date or 'not recorded'}\n\nTherapist's note:\n{note.text}"),
+        llm.user(f"Session date: {note.session_date or 'not recorded'}{safety_line}\n\n"
+                 f"Therapist's note:\n{without_assessment(note.text)}"),
     ]).strip()
     # A crisis line in a recap of an ordinary session can alarm; keep it only when the note raises risk
-    if not (safety.mentions_risk(note.text) or "safety plan" in note.text.lower()):
-        text = " ".join(sentence for sentence in re.split(r"(?<=[.!?])\s+", text) if "988" not in sentence).strip()
+    if not raises_risk:
+        paragraphs = (" ".join(s for s in re.split(r"(?<=[.!?])\s+", p) if "988" not in s)
+                      for p in re.split(r"\n\s*\n", text))
+        text = "\n\n".join(p for p in paragraphs if p.strip())
     audit.record(actor, "ai.draft_client_summary", request=request, client=client, obj=note)
     return text[:4000]
