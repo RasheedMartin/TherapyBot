@@ -10,6 +10,7 @@ import { PlansPage } from "./pages/Plans";
 import { VerifyEmailPage } from "./pages/VerifyEmail";
 import { QuickCheckInPage, RemindersOffPage } from "./pages/EmailActions";
 import { NoteDetailPage, NotesPage } from "./pages/Notes";
+import { MyTherapistPage } from "./pages/MyTherapist";
 import { Login } from "./components/Login";
 import { RegisterPage } from "./components/Register";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
@@ -23,6 +24,7 @@ import { ClientsPage } from "./pages/practice/ClientsPage";
 import { NotesQueue } from "./pages/practice/NotesQueue";
 import { PracticeOverview } from "./pages/practice/PracticeOverview";
 import { SchedulePage } from "./pages/practice/SchedulePage";
+import { TemplatesPage } from "./pages/practice/TemplatesPage";
 import { TherapistSignup } from "./pages/practice/TherapistSignup";
 
 const rootRoute = createRootRoute({
@@ -98,6 +100,18 @@ const profileRoute = createRoute({
   component: () => (
     <RequireAuth>
       <ProfilePage />
+    </RequireAuth>
+  ),
+});
+
+const myTherapistRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "my-therapist",
+  validateSearch: (search: Record<string, unknown>): { id?: number } =>
+    Number.isInteger(Number(search.id)) && search.id != null ? { id: Number(search.id) } : {},
+  component: () => (
+    <RequireAuth verified>
+      <MyTherapistPage />
     </RequireAuth>
   ),
 });
@@ -198,6 +212,7 @@ const practiceRoute = therapistPage("practice", PracticeOverview);
 const practiceClientsRoute = therapistPage("practice/clients", ClientsPage);
 const practiceScheduleRoute = therapistPage("practice/schedule", SchedulePage);
 const practiceNotesRoute = therapistPage("practice/notes", NotesQueue);
+const practiceTemplatesRoute = therapistPage("practice/templates", TemplatesPage);
 
 const practiceClientRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -234,6 +249,7 @@ export const router = createRouter({
     practiceClientsRoute,
     practiceScheduleRoute,
     practiceNotesRoute,
+    practiceTemplatesRoute,
     practiceClientRoute,
     practiceDocumentRoute,
     acceptInviteRoute,
@@ -244,6 +260,7 @@ export const router = createRouter({
     chatRoute,
     profileRoute,
     findCareRoute,
+    myTherapistRoute,
     plansRoute,
     verifyEmailRoute,
     notesRoute,

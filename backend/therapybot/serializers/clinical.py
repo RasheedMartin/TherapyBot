@@ -41,8 +41,9 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClinicalDocument
         fields = ("id", "title", "doc_type", "status", "session", "session_date", "text", "author_name",
-                  "signed_at", "signed_by_name", "amends", "editable", "imported_from", "created_at", "updated_at")
-        read_only_fields = ("status", "signed_at", "amends", "imported_from", "created_at", "updated_at")
+                  "signed_at", "signed_by_name", "amends", "editable", "imported_from", "summary_of", "created_at",
+                  "updated_at")
+        read_only_fields = ("status", "signed_at", "amends", "imported_from", "summary_of", "created_at", "updated_at")
 
     def get_author_name(self, doc):
         return _name(doc.author)
@@ -86,9 +87,9 @@ class TreatmentPlanSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TreatmentPlan
-        fields = ("id", "modality", "status", "problem_summary", "ai_generated", "signed_at", "goals",
-                  "created_at", "updated_at")
-        read_only_fields = ("status", "ai_generated", "signed_at", "created_at", "updated_at")
+        fields = ("id", "modality", "status", "problem_summary", "ai_generated", "signed_at", "share_with_client",
+                  "goals", "created_at", "updated_at")
+        read_only_fields = ("status", "ai_generated", "signed_at", "share_with_client", "created_at", "updated_at")
 
     def update(self, plan, validated_data):
         """Replace the goals wholesale; evidence is kept for goals whose text didn't change."""

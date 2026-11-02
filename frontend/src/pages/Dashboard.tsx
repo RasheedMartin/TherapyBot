@@ -17,6 +17,8 @@ import {
   type Profile,
   type SavedProvider,
 } from "../api/types";
+import { CheckInsCard } from "../components/care/CheckInsCard";
+import { SessionSummaryCard } from "../components/care/SessionSummaryCard";
 import { UpcomingSessions } from "../components/care/UpcomingSessions";
 import { TodayList } from "../components/plans/TodayList";
 import { PLANS_KEY } from "../components/plans/useCheckIn";
@@ -90,8 +92,8 @@ export const Dashboard = () => {
         icon={<EventOutlined />}
         title="Your therapist"
         action={
-          <LinkButton to="/profile" variant="text" sx={{ ml: -1 }}>
-            What they can see
+          <LinkButton to="/my-therapist" search={{ id: therapist.id }} variant="text" sx={{ ml: -1 }}>
+            Sessions, goals and sharing
           </LinkButton>
         }
       >
@@ -191,6 +193,8 @@ export const Dashboard = () => {
 
       <Stack spacing={3}>
         {therapist && <UpcomingSessions />}
+        {therapist && <CheckInsCard />}
+        {therapist && <SessionSummaryCard />}
         {/* What to do today, and the conversation to come back to: equal height, side by side on desktop */}
         <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "3fr 2fr" } }}>
           {activePlans.length > 0 ? (

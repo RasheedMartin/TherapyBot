@@ -178,3 +178,14 @@ def evidence_for(labels: list[str], sources_payload: list[dict]) -> list[dict]:
     return [by_label[label] for label in labels if label in by_label]
 
 
+def draft_client_summary(*, actor, client: Client, note, request=None) -> str:
+    """A plain-language recap of a signed note, written for the client. Unsaved; the therapist edits it."""
+    text = llm.get_chat_model().complete([
+        llm.system(prompts.CLIENT_SUMMARY_PROMPT),
+        llm.user(f"Session date: {note.session_date or 'not recorded'}\n\nTherapist's note:\n{note.text}"),
+    ]).strip()
+    # A crisis line in a recap of an ordinary session can alarm; keep it only when the note raises risk
+    if not (safety.mentions_risk(note.text) or "safety plan" in note.text.lower()):
+        text = " ".join(sentence for sentence in re.split(r"(?<=[.!?])\s+", text) if "988" not in sentence).strip()
+    audit.record(actor, "ai.draft_client_summary", request=request, client=client, obj=note)
+    return text[:4000]

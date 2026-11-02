@@ -27,8 +27,10 @@ from therapybot.serializers.clinical import (
 )
 from therapybot.serializers.screenings import (
     RiskFlagSerializer,
+    ScreeningAssignmentSerializer,
     ScreeningInputSerializer,
     ScreeningSerializer,
+    ScreeningTemplateSerializer,
 )
 from therapybot.serializers.practice import (
     TherapistRegisterSerializer,
@@ -41,6 +43,7 @@ from therapybot.serializers.practice import (
 
 __all__ = [
     "RiskFlagSerializer",
+    "ScreeningAssignmentSerializer",
     "ScreeningInputSerializer",
     "ScreeningSerializer",
     "ClinicalDocumentSerializer",

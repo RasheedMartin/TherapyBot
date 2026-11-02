@@ -1,7 +1,9 @@
 """
-Standardized screening instruments. PHQ-9 and GAD-7 were developed by Drs. Spitzer, Williams, Kroenke and
-colleagues with an educational grant from Pfizer; no permission is required to reproduce, translate,
-display or distribute them. Scoring is done here in code, never by a model.
+Screening instruments: the standard PHQ-9 and GAD-7, plus templates therapists build for their practice
+(models.ScreeningTemplate), which become Instruments too, so scoring, safety flags and trends work the
+same way for all of them. PHQ-9 and GAD-7 were developed by Drs. Spitzer, Williams, Kroenke and colleagues
+with an educational grant from Pfizer; no permission is required to reproduce, translate, display or
+distribute them. Scoring is done here in code, never by a model.
 """
 
 from dataclasses import dataclass
@@ -20,25 +22,33 @@ class Instrument:
     name: str
     prompt: str
     items: tuple[str, ...]
-    bands: tuple[tuple[int, str], ...]  # (minimum total, severity), ascending
-    risk_item: int | None = None  # index of an item where any positive answer needs clinical follow-up
+    bands: tuple[tuple[int, str], ...]  # (minimum total, label), ascending; may be empty
+    risk_item: int | None = None  # index of an item where an answer at or above risk_min needs follow-up
+    options: tuple[dict, ...] = tuple(OPTIONS)  # [{"value", "label"}], ascending values
+    risk_min: int = 1
+    custom: bool = False  # a practice's own template rather than a standard instrument
 
     @property
     def max_total(self) -> int:
-        return 3 * len(self.items)
+        return max(o["value"] for o in self.options) * len(self.items)
 
     def score(self, responses: list[int]) -> tuple[int, str]:
         if len(responses) != len(self.items):
             raise ValueError(f"{self.name} has {len(self.items)} items; got {len(responses)} answers")
-        if any(not isinstance(r, int) or isinstance(r, bool) or not 0 <= r <= 3 for r in responses):
-            raise ValueError("Each answer must be 0, 1, 2 or 3")
+        allowed = {o["value"] for o in self.options}
+        if any(not isinstance(r, int) or isinstance(r, bool) or r not in allowed for r in responses):
+            raise ValueError(f"Each answer must be one of {', '.join(str(v) for v in sorted(allowed))}")
         total = sum(responses)
-        severity = next(label for minimum, label in reversed(self.bands) if total >= minimum)
+        severity = next((label for minimum, label in reversed(self.bands) if total >= minimum), "")
         return total, severity
+
+    def flags_risk(self, responses: list[int]) -> bool:
+        return self.risk_item is not None and responses[self.risk_item] >= self.risk_min
 
     def as_dict(self) -> dict:
         return {"key": self.key, "name": self.name, "prompt": self.prompt, "items": list(self.items),
-                "options": OPTIONS, "max_total": self.max_total}
+                "options": list(self.options), "max_total": self.max_total, "custom": self.custom,
+                "bands": [{"min": m, "label": label} for m, label in self.bands], "risk_item": self.risk_item}
 
 
 PHQ9 = Instrument(
@@ -78,3 +88,22 @@ GAD7 = Instrument(
 )
 
 INSTRUMENTS = {i.key: i for i in (PHQ9, GAD7)}
+
+
+def template_key(template_id: int) -> str:
+    return f"t{template_id}"
+
+
+def get_instrument(key: str, practice=None, include_archived: bool = True) -> Instrument | None:
+    """A standard instrument by key, or one of `practice`'s templates ("t12"). None if unknown or not theirs."""
+    if key in INSTRUMENTS:
+        return INSTRUMENTS[key]
+    if practice is None or not key.startswith("t") or not key[1:].isdigit():
+        return None
+    from therapybot.models import ScreeningTemplate
+
+    templates = ScreeningTemplate.objects.filter(pk=int(key[1:]), practice=practice)
+    if not include_archived:
+        templates = templates.filter(archived=False)
+    template = templates.first()
+    return template.as_instrument() if template else None

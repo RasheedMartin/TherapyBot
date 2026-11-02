@@ -157,6 +157,8 @@ export interface CalendarFeed {
   url?: string;
   webcal_url?: string;
   google_url?: string;
+  outlook_url?: string;
+  office365_url?: string;
 }
 
 export type PlanDraft = Pick<Plan, "title" | "summary" | "conversation" | "steps">;
@@ -205,7 +207,7 @@ export interface PracticeClient {
   relationship: RelationshipSummary | null;
 }
 
-export type DocType = "client_upload" | "progress_note" | "transcript" | "intake" | "other";
+export type DocType = "client_upload" | "progress_note" | "transcript" | "intake" | "client_summary" | "other";
 
 export interface DocumentSummary {
   id: number;
@@ -222,7 +224,7 @@ export interface DocumentSummary {
 /** A document suggested by an import, reviewed by the therapist before it's saved. */
 export interface ImportedDocument {
   title: string;
-  doc_type: Exclude<DocType, "client_upload">;
+  doc_type: Exclude<DocType, "client_upload" | "client_summary">;
   session_date: string | null;
   text: string;
 }
@@ -236,6 +238,7 @@ export interface ClinicalDocument extends DocumentSummary {
   author_name: string;
   signed_by_name: string;
   amends: number | null;
+  summary_of: number | null;
   editable: boolean;
   updated_at: string;
 }
@@ -290,6 +293,7 @@ export interface CitedItem {
 }
 
 export interface ScreeningTrend {
+  key: string;
   instrument: string;
   latest_total: number;
   latest_severity: string;
@@ -347,13 +351,15 @@ export interface TreatmentPlan {
   problem_summary: string;
   ai_generated: boolean;
   signed_at: string | null;
+  share_with_client: boolean;
   goals: TreatmentGoal[];
   created_at: string;
 }
 
 export interface Screening {
   id: number;
-  instrument: "phq9" | "gad7";
+  instrument: string; // "phq9", "gad7" or "t<template id>"
+  instrument_name: string;
   responses: number[];
   total: number;
   severity: string;
@@ -361,13 +367,72 @@ export interface Screening {
   source: "clinician" | "self_report";
 }
 
+export interface AnswerOption {
+  value: number;
+  label: string;
+}
+
 export interface Instrument {
-  key: "phq9" | "gad7";
+  key: string;
   name: string;
   prompt: string;
   items: string[];
-  options: { value: number; label: string }[];
+  options: AnswerOption[];
   max_total: number;
+  custom: boolean;
+  bands: { min: number; label: string }[];
+  risk_item: number | null;
+}
+
+export type CheckInRepeat = "once" | "weekly" | "biweekly" | "monthly";
+
+export const CHECK_IN_REPEATS: { value: CheckInRepeat; label: string }[] = [
+  { value: "once", label: "Once" },
+  { value: "weekly", label: "Every week" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+];
+
+/** A check-in sent to a client, as the therapist sees it. */
+export interface CheckInAssignment {
+  id: number;
+  instrument: string;
+  instrument_name: string;
+  repeat: CheckInRepeat;
+  note: string;
+  due_on: string;
+  active: boolean;
+  last_completed_on: string | null;
+  created_at: string;
+}
+
+/** A check-in as the client sees it: open now (due) or coming up. */
+export interface MyCheckIn {
+  id: number;
+  due: boolean;
+  due_on: string;
+  repeat: CheckInRepeat;
+  note: string;
+  therapist_name: string;
+  relationship: number | null;
+  last_completed_on: string | null;
+  instrument: Instrument;
+}
+
+/** A practice's own questionnaire. */
+export interface ScreeningTemplate {
+  id: number;
+  key: string;
+  name: string;
+  prompt: string;
+  items: string[];
+  options: AnswerOption[];
+  bands: { min: number; label: string }[];
+  risk_item: number | null;
+  risk_min: number;
+  archived: boolean;
+  results: number;
+  updated_at: string;
 }
 
 export interface RiskFlag {
@@ -448,5 +513,27 @@ export interface ClientSession {
   start_time: string | null;
   duration_minutes: number;
   status: "scheduled" | "cancelled";
+  therapist_name: string;
+}
+
+/** One therapist, from the client's side. Everything past `relationship` is absent once care has ended. */
+export interface TherapistOverview {
+  relationship: CareTeamMember;
+  therapist: { name: string; specialty: string; practice_name: string };
+  sessions?: ClientSession[];
+  last_session?: string | null;
+  sessions_attended?: number;
+  completed_checkins?: { id: number; name: string; date: string }[];
+  goals?: { text: string; objectives: string[] }[];
+  homework?: { id: number; title: string; steps: string[] }[];
+  summaries?: SharedSummary[];
+}
+
+/** A session summary the therapist wrote for the client and shared. */
+export interface SharedSummary {
+  id: number;
+  session_date: string | null;
+  shared_at: string;
+  text: string;
   therapist_name: string;
 }

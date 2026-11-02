@@ -15,19 +15,21 @@ from therapybot.views.accounts import (
 )
 from therapybot.views.clinical import (
     add_addendum,
-    between_sessions_view,
-    import_preview,
-    import_records,
-    overview,
-    schedule,
-    session_detail,
     ask,
+    between_sessions_view,
+    client_summary,
     create_document,
     create_session,
     document_detail,
     draft_note,
     homework,
+    import_preview,
+    import_records,
+    overview,
     prep,
+    schedule,
+    session_detail,
+    share_treatment_plan,
     sign_document,
     sign_treatment_plan,
     timeline,
@@ -36,10 +38,15 @@ from therapybot.views.clinical import (
 )
 from therapybot.views.screenings import (
     acknowledge_risk_flag,
+    client_checkin_detail,
+    client_checkins,
     client_screenings,
     instruments,
+    my_checkins,
     my_screenings,
     risk_flags,
+    screening_template_detail,
+    screening_templates,
 )
 from therapybot.views.care_team import (
     accept_invite,
@@ -47,6 +54,8 @@ from therapybot.views.care_team import (
     invite_preview,
     leave_care,
     my_sessions,
+    my_summaries,
+    therapist_overview,
     update_sharing,
 )
 from therapybot.views.care import (
@@ -94,8 +103,11 @@ from therapybot.views.plans import (
 
 __all__ = [
     "acknowledge_risk_flag",
+    "client_checkin_detail",
+    "client_checkins",
     "client_screenings",
     "instruments",
+    "my_checkins",
     "my_screenings",
     "risk_flags",
     "add_addendum",
@@ -120,6 +132,7 @@ __all__ = [
     "leave_care",
     "register_therapist",
     "resend_invite",
+    "therapist_overview",
     "update_sharing",
     "ConversationDetail",
     "ConversationListCreate",
